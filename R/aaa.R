@@ -1,13 +1,14 @@
 # to avoid 'no visible binding for global variable' NOTE
-globalVariables(c("r_environment", "r_data", "r_state", ".", ".rs.restartR",
-                  "..density..", "Total", "tfoot", "thead", "tr", "th",
-                  "variable", "y", "matches"))
+globalVariables(c("r_environment", "session", "r_data", "r_state", ".",
+                  ".rs.restartR", "..density..", "Total", "tfoot", "thead",
+                  "tr", "th", "variable", "y", "matches"))
 
 #' radiant.data
 #'
 #' @name radiant.data
 #' @docType package
 #' @import ggplot2 shiny dplyr
+#' @importFrom car Recode
 #' @importFrom rstudioapi insertText isAvailable
 #' @importFrom knitr knit2html knit
 #' @importFrom markdown markdownToHTML
@@ -17,14 +18,16 @@ globalVariables(c("r_environment", "r_data", "r_state", ".", ".rs.restartR",
 #' @importFrom lubridate is.Date is.POSIXt now year month wday week hour minute second ymd mdy dmy ymd_hms hms hm as.duration parse_date_time
 #' @importFrom tibble rownames_to_column as_data_frame data_frame
 #' @importFrom tidyr gather_ gather spread spread_ separate
-#' @importFrom gridExtra arrangeGrob
+#' @importFrom grid textGrob gpar
+#' @importFrom gridExtra grid.arrange
 #' @importFrom shinyAce aceEditor updateAceEditor
-#' @importFrom readr read_delim write_csv
+#' @importFrom readr read_delim write_csv locale problems
 #' @importFrom base64enc dataURI
 #' @importFrom methods is
 #' @importFrom stats as.formula chisq.test dbinom median na.omit quantile sd setNames var weighted.mean
 #' @importFrom utils combn head install.packages read.table tail
 #' @importFrom import from
+#' @importFrom feather feather read_feather write_feather
 NULL
 
 #' Exporting rownames_to_column from tibble

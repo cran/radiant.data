@@ -11,6 +11,11 @@ output$ui_fileUpload <- renderUI({
   } else if (input$dataType %in% c("rda","rds")) {
     fileInput('uploadfile', '', multiple = TRUE,
       accept = c(".rda",".rds",".rdata"))
+  } else if (input$dataType == "feather") {
+    tagList(
+      numericInput("feather_n_max", label = "Maximum rows to read:", value = Inf, max = Inf, step = 1000),
+      fileInput('uploadfile', '', multiple = TRUE, accept = ".feather")
+    )
   } else if (input$dataType == "url_rda") {
     with(tags, table(
       tr(
@@ -109,10 +114,11 @@ observeEvent(input$to_global_save, {
 output$ui_Manage <- renderUI({
   data_types_in <- c("rda" = "rda", "rds" = "rds", "state" = "state", "csv" = "csv",
                   "clipboard" = "clipboard", "from global workspace" = "from_global",
-                  "examples" = "examples", "rda (url)" = "url_rda",
-                  "csv (url)" = "url_csv")
+                  "examples" = "examples", "feather" = "feather",
+                  "rda (url)" = "url_rda", "csv (url)" = "url_csv")
   data_types_out <- c("rda" = "rda", "rds" = "rds", "state" = "state", "csv" = "csv",
-                  "clipboard" = "clipboard", "to global workspace" = "to_global")
+                      "feather" = "feather",
+                      "clipboard" = "clipboard", "to global workspace" = "to_global")
   if (!isTRUE(getOption("radiant.local"))) {
     data_types_in <- data_types_in[-which(data_types_in == "from_global")]
     data_types_out <- data_types_out[-which(data_types_out == "to_global")]
@@ -128,6 +134,7 @@ output$ui_Manage <- renderUI({
             td(HTML("&nbsp;&nbsp;")),
             td(checkboxInput("man_str_as_factor", "Str. as Factor", TRUE)))),
           checkboxInput("man_read.csv", "use read.csv", FALSE),
+          numericInput("man_n_max", label = "Maximum rows to read:", value = Inf, max = Inf, step = 1000),
           radioButtons("man_sep", "Separator:", c(Comma=",", Semicolon=";", Tab="\t"),
                        ",", inline = TRUE),
           radioButtons("man_dec", "Decimal:", c(Period=".", Comma=","),
@@ -251,17 +258,19 @@ output$downloadData <- downloadHandler(
       if (!is.null(input$man_data_descr) && input$man_data_descr != "")
         attr(tmp[[robj]],"description") <- r_data[[paste0(robj,"_descr")]]
 
-      if (ext == 'rda') {
-        save(list = robj, file = file, envir = tmp)
-      } else {
+      if (ext == 'rds') {
         saveRDS(tmp[[robj]], file = file)
+      } else if (ext == 'feather') {
+        feather::write_feather(tmp[[robj]], file)
+      } else {
+        save(list = robj, file = file, envir = tmp)
       }
     }
   }
 )
 
 observeEvent(input$uploadfile, {
-  ## loading files from disk
+  n_max <- if (is_not(input$man_n_max)) input$feather_n_max else input$man_n_max
   inFile <- input$uploadfile
   ## iterating through the files to upload
   for (i in 1:(dim(inFile)[1]))
@@ -269,7 +278,8 @@ observeEvent(input$uploadfile, {
                  .csv = input$man_read.csv,
                  header = input$man_header,
                  man_str_as_factor = input$man_str_as_factor,
-                 sep = input$man_sep, dec = input$man_dec)
+                 sep = input$man_sep, dec = input$man_dec,
+                 n_max = n_max)
 
   updateSelectInput(session, "dataset", label = "Datasets:",
                     choices = r_data$datasetlist,
@@ -340,7 +350,6 @@ observeEvent(input$loadExampleData, {
   # exdat <- data(package = r_example_data)$results[, c("Package","Item")]
 
   for (i in 1:nrow(exdat)) {
-    pack <-
     item <- exdat[i,"Item"]
     r_data[[item]] <- data(list = item, package = exdat[i,"Package"], envir = environment()) %>% get
     r_data[[paste0(item,"_descr")]] <- attr(r_data[[item]], "description")
@@ -372,8 +381,29 @@ observeEvent(input$uploadState, {
   load(inFile$datapath, envir = tmpEnv)
 
   ## remove characters that may cause problems in shinyAce
-  if (!is.null(tmpEnv$r_state$rmd_report))
-    tmpEnv$r_state$rmd_report %<>% gsub("[\x80-\xFF]", "", .) %>% gsub("\r","\n",.)
+  # if (!is.null(tmpEnv$r_state$rmd_report))
+    # tmpEnv$r_state$rmd_report %<>% gsub("[\x80-\xFF]", "", .) %>% gsub("\r","\n",.)
+
+  ## remove characters that may cause problems in shinyAce
+  if (!is.null(tmpEnv$r_state)) {
+    for (i in names(tmpEnv$r_state)) {
+      if (is.character(tmpEnv$r_state[[i]])) {
+        tmpEnv$r_state[[i]] %<>% gsub("[\x80-\xFF]", "", .) %>% gsub("\r","\n",.)
+      }
+    }
+  }
+
+  ## remove characters that may cause problems in shinyAce
+  if (!is.null(tmpEnv$r_data)) {
+    for (i in names(tmpEnv$r_data)) {
+      if (is.character(tmpEnv$r_data[[i]])) {
+        tmpEnv$r_data[[i]] %<>% gsub("[\x80-\xFF]", "", .) %>% gsub("\r","\n",.)
+      }
+    }
+  }
+
+  ## storing statename for later use if needed
+  tmpEnv$r_state$state_name <- inFile$name
 
   r_sessions[[r_ssuid]] <- list(
     r_data = tmpEnv$r_data,
@@ -396,16 +426,24 @@ output$refreshOnUpload <- renderUI({
 # Save state
 #######################################
 saveState <- function(filename) {
-  isolate({
-    LiveInputs <- toList(input)
-    r_state[names(LiveInputs)] <- LiveInputs
-    r_data <- toList(r_data)
-    save(r_state, r_data , file = filename)
-  })
+  withProgress(message = "Preparing state file", value = 1,
+    isolate({
+      LiveInputs <- toList(input)
+      r_state[names(LiveInputs)] <- LiveInputs
+      r_data <- toList(r_data)
+      save(r_state, r_data , file = filename)
+    })
+  )
 }
 
 output$saveState <- downloadHandler(
-  filename = function() { paste0("radiant-state-",Sys.Date(),".rda") },
+  filename = function() { 
+    if (is.null(r_state$state_name)) {
+      paste0("radiant-state-",Sys.Date(),".rda") 
+    } else {
+      r_state$state_name
+    }
+  },
   content = function(file) {
     saveState(file)
   }
@@ -428,7 +466,8 @@ observeEvent(input$renameButton, {
 # .data_rename <- reactive({
 .data_rename <- function() {
   isolate({
-    if (is_empty(input$data_rename)) return()
+    if (is_empty(input$data_rename) || input$dataset == input$data_rename) return()
+
     ## use pryr::object_size to see that the size of the list doesn't change
     ## when you assign a list element another name
     r_data[[input$data_rename]] <- r_data[[input$dataset]]
@@ -476,7 +515,8 @@ output$htmlDataExample <- renderText({
   if (is.null(.getdata())) return()
 
   ## Show only the first 10 (or 20) rows
-  r_data[[paste0(input$dataset,"_descr")]] %>%
-    { is_empty(.) %>% ifelse (., 20, 10) } %>%
-    show_data_snippet(nshow = .)
+  # r_data[[paste0(input$dataset,"_descr")]] %>%
+  #   { is_empty(.) %>% ifelse (., 20, 10) } %>%
+  #   show_data_snippet(nshow = .)
+  show_data_snippet(nshow = 10)
 })

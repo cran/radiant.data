@@ -2,7 +2,7 @@
 
 ### Filter
 
-Use the `Filter` box to select (or omit) specific sets of rows from the data. See the helpfile for <a href="/docs/data/view.html" target="_blank">_Data > View_</a> for details.
+Use the `Filter` box to select (or omit) specific sets of rows from the data. See the helpfile for <a href="https://radiant-rstats.github.io/docs/data/view.html" target="_blank">_Data > View_</a> for details.
 
 ### Pause plotting
 
@@ -10,7 +10,7 @@ For larger datasets it can useful to click `Pause plotting` before selecting var
 
 ### Plot-type
 
-Select the plot type you want. For example, with the `diamonds` data loaded select `Distribution` and all (X) variables (use CTRL-a or CMD-a). This will create a histogram for all numeric variables and a bar-plot for all categorical variables in the dataset. Density plots can only be used with numeric variables. Scatter plots are used to visualize the relationship between two variables. Select one or more variables to plot on the Y-axis and one or more variables to plot on the X-axis. If one of the variables is categorical (i.e., a {factor}) it should be specified as an X-variable. Line plots are similar to scatter plots but they connect-the-dots and are particularly useful for time-series data. Surface plots are similar to `Heat maps` and require 3 input variables: X, Y, and Fill. Bar plots are used to show the relationship between a categorical (or integer) variable (X) and the (mean) value of a numeric variable (Y). If the Y-variable in a bar plot is categorical (i.e., a {factor}) the proportion of occurrence of the first-level in that variable is shown (e.g., if we select `color` from the `diamonds` data as the Y-variable each bar represents the proportion of observations with the value `D`). Box-plots are also used when we have a numeric Y-variable and a categorical X-variable. They are more informative than bar charts but also require a bit more effort to evaluate.
+Select the plot type you want. For example, with the `diamonds` data loaded select `Distribution` and all (X) variables (use CTRL-a or CMD-a). This will create a histogram for all numeric variables and a bar-plot for all categorical variables in the dataset. Density plots can only be used with numeric variables. Scatter plots are used to visualize the relationship between two variables. Select one or more variables to plot on the Y-axis and one or more variables to plot on the X-axis. If one of the variables is categorical (i.e., a {factor}) it should be specified as an X-variable. Information about additional variables can be added through the `Color` or `Size` dropdown. Line plots are similar to scatter plots but they connect-the-dots and are particularly useful for time-series data. Surface plots are similar to `Heat maps` and require 3 input variables: X, Y, and Fill. Bar plots are used to show the relationship between a categorical (or integer) variable (X) and the (mean) value of a numeric variable (Y). If the Y-variable in a bar plot is categorical (i.e., a {factor}) the proportion of occurrence of the first-level in that variable is shown (e.g., if we select `color` from the `diamonds` data as the Y-variable each bar represents the proportion of observations with the value `D`). Box-plots are also used when we have a numeric Y-variable and a categorical X-variable. They are more informative than bar charts but also require a bit more effort to evaluate.
 
 > Note that when a categorical variable (`factor`) is selected as the `Y-variable` in a Bar chart it is converted to a 0-1 (binary) variable where the first level is coded as 1 and all other levels as 0.
 
@@ -39,7 +39,7 @@ To add a linear or non-linear regression line to a scatter plot check the `Line`
 
 ### Axis scale
 
-The relationship between variables depicted in a scatter plot may be non-linear. There are numerous transformations we might apply to the data so this relationship becomes (approximately) linear (see _<a href="/docs/data/transform.html" target="_blank">Data > Transform</a>_) and easier to estimate using, for example, _<a href="/docs/model/regress.html" target="_blank">Model > Estimate > Linear regression (OLS)</a>_. Perhaps the most common data transformation applied to business data is the (natural) logarithm. To see if log transformation(s) may be appropriate for your data check the `Log X` and/or `Log Y` boxes (e.g., for a scatter or bar plot).
+The relationship between variables depicted in a scatter plot may be non-linear. There are numerous transformations we might apply to the data so this relationship becomes (approximately) linear (see _<a href="https://radiant-rstats.github.io/docs/data/transform.html" target="_blank">Data > Transform</a>_) and easier to estimate using, for example, _<a href="https://radiant-rstats.github.io/docs/model/regress.html" target="_blank">Model > Estimate > Linear regression (OLS)</a>_. Perhaps the most common data transformation applied to business data is the (natural) logarithm. To see if log transformation(s) may be appropriate for your data check the `Log X` and/or `Log Y` boxes (e.g., for a scatter or bar plot).
 
 By default the scale of the Y-axis is the same across sub-plots when using `Facet row`. To allow the Y-axis to be specific to each sub-plot click the `Scale-y` check-box.
 
@@ -53,24 +53,51 @@ To make plots bigger or smaller adjust the values in the height and width boxes 
 
 ### Keep plots
 
-The best way to keep/store plots is to generate a `visualize` command by clicking the report (<i title='Report results' class='fa fa-edit'></i>) icon on the bottom left of your screen. Alternatively, click the <i title='Download' class='fa fa-download'></i> icon on the top right of your screen to save a png-file to disk.
+The best way to keep/store plots is to generate a `visualize` command by clicking the report (<i title='Report results' class='fa fa-edit'></i>) icon on the bottom left of your screen or by pressing `ALT-enter` on your keyboard. Alternatively, click the <i title='Download' class='fa fa-download'></i> icon on the top right of your screen to save a png-file to disk.
 
 ### Customizing plots in _R > Report_
 
-To customize a plot first generate the `visualize` command by clicking the report (<i title='Report results' class='fa fa-edit'></i>) icon on the bottom left of your screen. The example below illustrates how to customize a command in the <a href="/docs/data/report.html" target="_blank">_R > Report_</a> tab. Notice that `custom` is set to `TRUE`.
+To customize a plot first generate the `visualize` command by clicking the report (<i title='Report results' class='fa fa-edit'></i>) icon on the bottom left of your screen or by pressing `ALT-enter` on your keyboard. The example below illustrates how to customize a command in the <a href="https://radiant-rstats.github.io/docs/data/report.html" target="_blank">_R > Report_</a> tab. Notice that `custom` is set to `TRUE`.
 
 ```r
-visualize("diamonds", yvar = "price", xvar = "carat", type = "scatter", custom = TRUE) +
-  ggtitle("A scatterplot") + xlab("price in $")
+visualize(dataset = "diamonds", yvar = "price", xvar = "carat", type = "scatter", custom = TRUE) +
+  labs(
+    title = "A scatterplot", 
+    y = "Price in $",
+    x = "Carats"
+  )
 ```
 
 **Some common customization commands:**
 
-* Add a title: `+ ggtitle("my title")`
-* Change label: `+ xlab("my X-axis label")` or `+ ylab("my X-axis label")`
-* Remove legend: `+ theme(legend.position = "none")`
-* Change legend title: `+ guides(color = guide_legend(title = "New title"))` or `+ guides(fill = guide_legend(title = "New title"))`
+* Add a title: `+ labs(title = "my title")`
+* Add a sub-title: `+ labs(subtitle = "my sub-title")`
+* Add a caption below figure: `+ labs(caption = "Based on data from ...")`
+* Change label: `+ labs(x = "my X-axis label")` or `+ labs(y = "my Y-axis label")`
+* Remove all legends: `+ theme(legend.position = "none")`
+* Change legend title: `+ labs(color = "New legend title")` or `+ labs(fill = "New legend title")`
 * Rotate tick labels: `+ theme(axis.text.x = element_text(angle = 90, hjust = 1))`
-* Set plot limits: `+ ylim(15, 20)` or `+ xlim("VS1","VS2")`
+* Set plot limits: `+ ylim(5000, 8000)` or `+ xlim("VS1","VS2")`
+* Remove size legend: `+ scale_size(guide = "none")`
+* Change size range: `+ scale_size(range=c(1,6))`
+* Draw a horizontal line: `+ geom_hline(yintercept = 0.1)`
+* Draw a vertical line: `+ geom_vline(xintercept = 8)`
 
-See the ggplot2 documentation page for additional options <a href="http://docs.ggplot2.org/" target="_blank">http://docs.ggplot2.org</a>.
+For more on how to customize plots for communication see <a href="http://r4ds.had.co.nz/graphics-for-communication.html" target="_blank">http://r4ds.had.co.nz/graphics-for-communication.html</a>.
+
+See also the ggplot2 documentation site <a href="http://docs.ggplot2.org/" target="_blank">http://docs.ggplot2.org</a>.
+
+Suppose we create a set of three bar charts in _Data > Visualize_ using the `Diamond` data. To add a title above the group of plots and impose a one-column layout we could use `gridExtra::grid.arrange` as follows:
+
+```r
+plot_list <- visualize(
+  dataset = "diamonds", 
+  xvar = c("clarity", "cut", "color"), 
+  yvar = "price", 
+  type = "bar", 
+  custom = TRUE
+) 
+gridExtra::grid.arrange(grobs = plot_list, top = "Three bar plots", ncol = 1)
+```
+
+See the <a href="https://cran.r-project.org/web/packages/gridExtra/vignettes/arrangeGrob.html">gridExtra vignette</a> for additional information on how to customize groups of plots.

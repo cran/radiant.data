@@ -30,14 +30,22 @@ output$view_state <- renderUI({
 })
 
 output$saveStateNav <- downloadHandler(
-  filename = function() { paste0("radiant-state-",Sys.Date(),".rda") },
+  filename = function() { 
+    if (is.null(r_state$state_name)) {
+      paste0("radiant-state-",Sys.Date(),".rda") 
+    } else {
+      r_state$state_name
+    }
+  },
   content = function(file) {
     saveState(file)
   }
 )
 
 observeEvent(input$shareState, {
-  saveSession(session)
+  withProgress(message = "Preparing session sharing", value = 1, {
+    saveSession(session)
+  })
 })
 
 output$show_session <- renderPrint({

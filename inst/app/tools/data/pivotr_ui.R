@@ -9,7 +9,10 @@ pvt_type <- c("Dodge" = "dodge","Fill" = "fill")
 
 ## UI-elements for pivotr
 output$ui_pvt_cvars <- renderUI({
-  vars <- groupable_vars()
+
+  withProgress(message = "Acquiring variable information", value = 1, {
+    vars <- groupable_vars()
+  })
   req(available(vars))
 
   isolate({
@@ -104,6 +107,12 @@ output$ui_Pivotr <- renderUI({
         checkboxInput("pvt_flip", "Flip", value = state_init("pvt_flip", FALSE))
       )
     ),
+    wellPanel(
+      tags$table(
+        tags$td(textInput("pvt_dat", "Store as:", paste0(input$dataset,"_pvt"))),
+        tags$td(actionButton("pvt_store", "Store"), style = "padding-top:30px;")
+      )
+    ),
     help_and_report(modal_title = "Pivotr",
                     fun_name = "pivotr",
                     help_file = inclMD(file.path(getOption("radiant.path.data"),"app/tools/help/pivotr.md")))
@@ -164,7 +173,7 @@ pvt_plot_inputs <- reactive({
 
   req(input$pvt_pause == FALSE, cancelOutput = TRUE)
 
-  withProgress(message = "Calculating", value = 0.5, {
+  withProgress(message = "Calculating", value = 1, {
     sshhr( do.call(pivotr, pvti) )
   })
 })
@@ -181,7 +190,6 @@ observeEvent(input$pivotr_state, {
 output$pivotr <- DT::renderDataTable({
   pvt <- .pivotr()
   if (is.null(pvt)) return(data.frame())
-  pvt$shiny <- TRUE
 
   if (!identical(r_state$pvt_cvars, input$pvt_cvars)) {
     r_state$pvt_cvars <<- input$pvt_cvars
@@ -193,7 +201,7 @@ output$pivotr <- DT::renderDataTable({
   order <- r_state$pivotr_state$order
   pageLength <- r_state$pivotr_state$length
 
-  withProgress(message = 'Generating pivot table', value = 0.5,
+  withProgress(message = 'Generating pivot table', value = 1,
     dtab(pvt, format = input$pvt_format, perc = input$pvt_perc,
             dec = input$pvt_dec, searchCols = searchCols, order = order,
             pageLength = pageLength)
@@ -205,7 +213,7 @@ output$pivotr_chi2 <- renderPrint({
   req(input$pvt_chi2)
   req(input$pvt_dec)
   .pivotr() %>% {if (is.null(.)) return(invisible())
-                 else summary(., chi2 = TRUE, dec = input$pvt_dec, shiny = TRUE)}
+                 else summary(., chi2 = TRUE, dec = input$pvt_dec)}
 })
 
 output$dl_pivot_tab <- downloadHandler(
@@ -272,17 +280,31 @@ observeEvent(input$pivotr_rows_all, {
   if (is.null(pvt)) return(invisible())
   if (!is_empty(input$pvt_tab, FALSE))
     pvt <- pvt_sorter(pvt, rows = r_data$pvt_rows)
-    pvt_plot_inputs() %>% { .$shiny <- TRUE; . } %>%
-      { do.call(plot, c(list(x = pvt), .)) }
+    pvt_plot_inputs() %>% { do.call(plot, c(list(x = pvt), .)) }
 })
 
 output$plot_pivot <- renderPlot({
   if (is_empty(input$pvt_plot, FALSE)) return(invisible())
-  withProgress(message = 'Making plot', value = 0.5, {
+  withProgress(message = 'Making plot', value = 1, {
     sshhr(.plot_pivot()) %>% print
   })
   return(invisible())
 }, width = pvt_plot_width, height = pvt_plot_height)
+
+observeEvent(input$pvt_store, {
+  dat <- .pivotr()
+  if (is.null(dat)) return()
+  name <- input$pvt_dat
+  rows <- input$pivotr_rows_all
+  dat$tab %<>% {if (is.null(rows)) . else .[rows,, drop = FALSE]}
+  store(dat, name)
+  updateSelectInput(session, "dataset", selected = input$dataset)
+
+  ## alert user about new dataset
+  session$sendCustomMessage(type = "message",
+    message = paste0("Dataset '", name, "' was successfully added to the datasets dropdown. Add code to R > Report to (re)create the results by clicking the report icon on the bottom left of your screen.")
+  )
+})
 
 observeEvent(input$pivotr_report, {
 
@@ -309,7 +331,7 @@ observeEvent(input$pivotr_report, {
     xcmd <- paste0(xcmd, ", dec = ", input$pvt_dec)
   if (!is_empty(r_state$pivotr_state$length, 10))
     xcmd <- paste0(xcmd, ", pageLength = ", r_state$pivotr_state$length)
-  xcmd <- paste0(xcmd, "))")
+  xcmd <- paste0(xcmd, "))\n#store(result, name = \"", input$pvt_dat, "\")")
 
   inp_main <- clean_args(pvt_inputs(), pvt_args)
   if (ts$tabsort != "") inp_main <- c(inp_main, tabsort = ts$tabsort)

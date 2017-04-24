@@ -44,7 +44,10 @@ saveStateOnRefresh <- function(session = session) {
       url_query <- parseQueryString(session$clientData$url_search)
       if (not_pressed(input$refresh_radiant) && not_pressed(input$stop_radiant) &&
           is.null(input$uploadState) && !"fixed" %in% names(url_query)) {
-        saveSession(session)
+
+        # withProgress(message = "Preparing session sharing", value = 1, {
+          saveSession(session)
+        # })
       } else {
         if (is.null(input$uploadState)) {
           if (exists("r_sessions")) {
@@ -91,14 +94,24 @@ saveStateOnRefresh <- function(session = session) {
 })
 
 ## same as .getdata but without filters etc.
-.getdata_transform <- reactive({
-  if (is.null(input$dataset)) return()
-  if ("grouped_df" %in% class(r_data[[input$dataset]])) {
-    ungroup(r_data[[input$dataset]])
+# .getdata_transform <- reactive({
+#   if (is.null(input$dataset)) return()
+#   if ("grouped_df" %in% class(r_data[[input$dataset]])) {
+#     ungroup(r_data[[input$dataset]])
+#   } else {
+#     r_data[[input$dataset]]
+#   }
+# })
+
+## using a regular function to avoid a full data copy
+.getdata_transform <- function(dataset = input$dataset) {
+  if (is.null(dataset)) return()
+  if ("grouped_df" %in% class(r_data[[dataset]])) {
+    ungroup(r_data[[dataset]])
   } else {
-    r_data[[input$dataset]]
+    r_data[[dataset]]
   }
-})
+}
 
 .getclass <- reactive({
   getclass(.getdata())
@@ -106,15 +119,15 @@ saveStateOnRefresh <- function(session = session) {
 
 groupable_vars <- reactive({
   .getdata() %>%
-    summarise_each(funs(is.factor(.) || is.logical(.) || lubridate::is.Date(.) || is.integer(.) ||
-                        ((n_distinct(., na.rm = TRUE)/n()) < .30))) %>%
+    summarise_all(funs(is.factor(.) || is.logical(.) || lubridate::is.Date(.) || is.integer(.) ||
+                        is.character(.) || ((length(unique(.))/n()) < .30))) %>%
     {which(. == TRUE)} %>%
     varnames()[.]
 })
 
 groupable_vars_nonum <- reactive({
   .getdata() %>%
-    summarise_each(funs(is.factor(.) || is.logical(.) || lubridate::is.Date(.) || is.integer(.) ||
+    summarise_all(funs(is.factor(.) || is.logical(.) || lubridate::is.Date(.) || is.integer(.) ||
                    is.character(.))) %>%
     {which(. == TRUE)} %>%
     varnames()[.]
@@ -124,7 +137,7 @@ groupable_vars_nonum <- reactive({
 ## used in compare proportions
 two_level_vars <- reactive({
   .getdata() %>%
-    summarise_each(funs(n_distinct(., na.rm = TRUE))) %>%
+    summarise_all(funs(length(unique(.)))) %>%
     { . == 2 } %>%
     which(.) %>%
     varnames()[.]
@@ -133,7 +146,7 @@ two_level_vars <- reactive({
 ## used in visualize - don't plot Y-variables that don't vary
 varying_vars <- reactive({
   .getdata() %>%
-    summarise_each(funs(does_vary(.))) %>%
+    summarise_all(funs(does_vary(.))) %>%
     as.logical %>%
     which %>%
     varnames()[.]
@@ -192,10 +205,10 @@ is_date <- function(x) inherits(x, c("Date", "POSIXlt", "POSIXct"))
 r_drop <- function(x, drop = c("dataset","data_filter")) x[-which(x %in% drop)]
 
 ## convert a date variable to character for printing
-d2c <- function(x) if (is_date(x)) as.character(x) else x
+# d2c <- function(x) if (is_date(x)) as.character(x) else x
 
 ## truncate character fields for show_data_snippet
-trunc_char <- function(x) if (is.character(x)) strtrim(x,40) else x
+# trunc_char <- function(x) if (is.character(x)) strtrim(x,40) else x
 
 ## show a few rows of a dataframe
 show_data_snippet <- function(dat = input$dataset, nshow = 7, title = "", filt = "") {
@@ -206,12 +219,12 @@ show_data_snippet <- function(dat = input$dataset, nshow = 7, title = "", filt =
   ## name exists
   dat <- dat[1:min(nshow, nr),, drop = FALSE]
   dat %>%
-    mutate_each(funs(trunc_char)) %>%
-    mutate_each(funs(d2c)) %>%
+    mutate_if_tmp(is_date, as.character) %>%
+    mutate_if_tmp(is.character, funs(strtrim(., 40))) %>%
     xtable::xtable(.) %>%
     print(type = 'html',  print.results = FALSE, include.rownames = FALSE,
           sanitize.text.function = identity,
-          html.table.attributes = "class='table table-condensed table-hover'") %>%
+          html.table.attributes = "class='table table-condensed table-hover snippet'") %>%
     paste0(title, .) %>%
     {if (nr <= nshow) . else paste0(.,'\n<label>', nshow,' of ', formatnr(nr,dec = 0), ' rows shown. See View-tab for details.</label>')} %>%
     enc2utf8
@@ -293,7 +306,7 @@ register_plot_output <- function(fun_name, rfun_name,
         plot(x = 1, type = 'n', main = paste0("\n\n\n\n\n\n\n\n",.) ,
              axes = FALSE, xlab = "", ylab = "")
       } else {
-        withProgress(message = 'Making plot', value = 0.5, print(.))
+        withProgress(message = 'Making plot', value = 1, print(.))
       }
     }
   }, width=get(width_fun), height=get(height_fun))
@@ -343,7 +356,9 @@ stat_tab_panel <- function(menu, tool, tool_ui, output_panels,
 ################################################################
 ## functions used for app help
 ################################################################
-help_modal <- function(modal_title, link, help_file) {
+help_modal <- function(modal_title, link, help_file,
+                       author = "Vincent Nijs",
+                       year = lubridate::year(lubridate::now())) {
   sprintf("<div class='modal fade' id='%s' tabindex='-1' role='dialog' aria-labelledby='%s_label' aria-hidden='true'>
             <div class='modal-dialog'>
               <div class='modal-content'>
@@ -352,17 +367,19 @@ help_modal <- function(modal_title, link, help_file) {
                   <h4 class='modal-title' id='%s_label'>%s</h4>
                   </div>
                 <div class='modal-body'>%s<br>
-                  &copy; Vincent Nijs (2016) <a rel='license' href='http://creativecommons.org/licenses/by-nc-sa/4.0/' target='_blank'><img alt='Creative Commons License' style='border-width:0' src ='imgs/80x15.png' /></a>
+                  &copy; %s (%s) <a rel='license' href='http://creativecommons.org/licenses/by-nc-sa/4.0/' target='_blank'><img alt='Creative Commons License' style='border-width:0' src ='imgs/80x15.png' /></a>
                 </div>
               </div>
             </div>
            </div>
            <i title='Help' class='fa fa-question' data-toggle='modal' data-target='#%s'></i>",
-           link, link, link, modal_title, help_file, link) %>%
+           link, link, link, modal_title, help_file, author, year, link) %>%
   enc2utf8 %>% HTML
 }
 
-help_and_report <- function(modal_title, fun_name, help_file) {
+help_and_report <- function(modal_title, fun_name, help_file,
+                            author = "Vincent Nijs",
+                            year = lubridate::year(lubridate::now())) {
   sprintf("<div class='modal fade' id='%s_help' tabindex='-1' role='dialog' aria-labelledby='%s_help_label' aria-hidden='true'>
             <div class='modal-dialog'>
               <div class='modal-content'>
@@ -371,7 +388,7 @@ help_and_report <- function(modal_title, fun_name, help_file) {
                   <h4 class='modal-title' id='%s_help_label'>%s</h4>
                   </div>
                 <div class='modal-body'>%s<br>
-                  &copy; Vincent Nijs (2016) <a rel='license' href='http://creativecommons.org/licenses/by-nc-sa/4.0/' target='_blank'><img alt='Creative Commons License' style='border-width:0' src ='imgs/80x15.png' /></a>
+                  &copy; %s (%s) <a rel='license' href='http://creativecommons.org/licenses/by-nc-sa/4.0/' target='_blank'><img alt='Creative Commons License' style='border-width:0' src ='imgs/80x15.png' /></a>
                 </div>
               </div>
             </div>
@@ -379,7 +396,7 @@ help_and_report <- function(modal_title, fun_name, help_file) {
            <i title='Help' class='fa fa-question alignleft' data-toggle='modal' data-target='#%s_help'></i>
            <i title='Report results' class='fa fa-edit action-button shiny-bound-input alignright' href='#%s_report' id='%s_report'></i>
            <div style='clear: both;'></div>",
-          fun_name, fun_name, fun_name, modal_title, help_file, fun_name, fun_name, fun_name) %>%
+          fun_name, fun_name, fun_name, modal_title, help_file, author, year, fun_name, fun_name, fun_name) %>%
   enc2utf8 %>% HTML %>% withMathJax
 }
 
@@ -427,7 +444,6 @@ dt_state <- function(fun, vars = "", tabfilt = "", tabsort = "", nr = 0) {
   if (order != "NULL" || sc != "NULL") {
 
     ## get variable class and name
-    # gc <- get(paste0(".",fun))()$tab %>% {nr <<- nrow(.); .} %>% getclass %>%
     gc <- getclass(dat) %>% {if (is_empty(vars[1])) . else .[vars]}
     cn <- names(gc)
 
@@ -435,7 +451,9 @@ dt_state <- function(fun, vars = "", tabfilt = "", tabsort = "", nr = 0) {
       if (order != "NULL") {
         tabsort <- c()
         for (i in order[[1]]) {
-          cname <- cn[i[[1]] + 1]
+          cname <- cn[i[[1]] + 1] %>% gsub("^\\s+|\\s+$", "", .)
+          if (grepl("[^0-9a-zA-Z_\\.]", cname) || grepl("^[0-9]", cname))
+            cname <- paste0("`", cname, "`")
           if (i[[2]] == "desc") cname <- paste0("desc(", cname, ")")
           tabsort <- c(tabsort, cname)
         }
@@ -467,8 +485,6 @@ dt_state <- function(fun, vars = "", tabfilt = "", tabsort = "", nr = 0) {
       }
     }
   }
-
-  # tabslice <- if (ts < 2) "1" else paste0("1:",ts)
 
   list(search = search, order = order, sc = sc, tabsort = tabsort, tabfilt = tabfilt, nr = nr)
 }
@@ -506,14 +522,15 @@ save2env <- function(dat, dataset,
 }
 
 ## use the value in the input list if available and update r_state
-state_init <- function(var, init = "") {
+state_init <- function(var, init = "", na.rm = TRUE) {
   isolate({
     ivar <- input[[var]]
     if (var %in% names(input) || length(ivar) > 0) {
       ivar <- input[[var]]
-      if (is_empty(ivar)) r_state[[var]] <<- NULL
+      if ((na.rm && is_empty(ivar)) || length(ivar) == 0) 
+        r_state[[var]] <<- NULL
     } else {
-      ivar <- .state_init(var, init)
+      ivar <- .state_init(var, init, na.rm)
     }
     ivar
   })
@@ -534,9 +551,9 @@ state_group <- function(var, init = "") {
   })
 }
 
-.state_init <- function(var, init = "") {
+.state_init <- function(var, init = "", na.rm = TRUE) {
   rs <- r_state[[var]]
-  if (is_empty(rs)) init else rs
+  if ((na.rm && is_empty(rs)) || length(rs) == 0) init else rs
 }
 
 state_single <- function(var, vals, init = character(0)) {
@@ -555,7 +572,6 @@ state_single <- function(var, vals, init = character(0)) {
         r_state[[var]] <<- ivar
       .state_single(var, vals, init = init)
     }
-    # .state_single(var, vals, init = init)
   })
 }
 

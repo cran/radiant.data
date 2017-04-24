@@ -5,9 +5,9 @@
 rcode_choices <- c("HTML","R-code")
 if (rstudioapi::isAvailable() || (!isTRUE(getOption("radiant.local")) && !is.null(session$user))) {
   if (rstudioapi::isAvailable()) {
-    rcode_choices <- c("HTML","PDF","Word","R-code")
+    rcode_choices <- c("Notebook","HTML","PDF","Word","R-code")
   } else {
-    rcode_choices <- c("HTML","Word","R-code")
+    rcode_choices <- c("Notebook","HTML","R-code")
   }
 }
 if (Sys.getenv("R_ZIPCMD") != "")
@@ -33,9 +33,8 @@ dat %>% ggplot(aes(x = price)) + geom_histogram()
 ## and a histogram of log-prices using radiant.data::visualize
 dat %>% visualize(xvar = \"log_price\", custom = TRUE)
 
-
 ## open help in the R-studio viewer from Radiant
-help(package = 'radiant')
+help(package = 'radiant.data')
 
 ## If you are familiar with Shiny you can call reactives when the code
 ## is evaluated inside a Shiny app. For example, if you transformed
@@ -48,7 +47,7 @@ output$ui_rcode_save <- renderUI({
   if (isTRUE(local) || (!isTRUE(local) && !is.null(session$user))) {
     selectInput(inputId = "rcode_save", label = NULL,
       choices = rcode_choices,
-      selected = state_init("rcode_save", "HTML"),
+      selected = state_init("rcode_save", "Notebook"),
       multiple = FALSE, selectize = FALSE,
       width = "120px")
   } else {
@@ -109,6 +108,7 @@ output$rcode_output <- renderUI({
       paste0("```{r cache = FALSE, echo = TRUE}\n", rcode_edit ,"\n```") %>%
         ## need r_environment so changes are reflected in the shiny environment
         knitr::knit2html(text = ., fragment.only = TRUE, quiet = TRUE, envir = r_environment) %>%
+        scrub %>%
         HTML
     }
   })
@@ -117,7 +117,7 @@ output$rcode_output <- renderUI({
 output$saveCodeReport <- downloadHandler(
   filename = function() {
     paste("rcode", sep = ".", switch(
-      input$rcode_save, HTML = "html", PDF = "pdf", Word = "docx", `R-code` = "R", `R-code & Data (zip)` = "zip"
+      input$rcode_save, Notebook = "nb.html", HTML = "html", PDF = "pdf", Word = "docx", `R-code` = "R", `R-code & Data (zip)` = "zip"
     ))
   },
   content = function(file) {
@@ -129,29 +129,37 @@ output$saveCodeReport <- downloadHandler(
         owd <- setwd(tempdir())
         on.exit(setwd(owd))
 
+        lib <- if ("radiant" %in% installed.packages()) "radiant" else "radiant.data"
+
         rcode <- ifelse (is_empty(input$rcode_selection), input$rcode_edit, input$rcode_selection)
 
         if (input$rcode_save == "R-code & Data (zip)") {
           r_data <- toList(r_data)
           save(r_data, file = "r_data.rda")
-          paste0("## Load radiant package if needed\n#suppressMessages(library(radiant))\n\n## Load data\nload(\"r_data.rda\")\n\n", rcode,"\n") %>%
+          paste0("## Load radiant if needed\nlibrary(", lib, ")\n\n## Load data\nload(\"r_data.rda\")\n\n", rcode,"\n") %>%
             cat(file = "rcode.R", sep = "\n")
           zip(file, c("rcode.R","r_data.rda"))
         } else if (input$rcode_save == "R-code") {
-          paste0("## Load radiant package if needed\n#suppressMessages(library(radiant))\n\n", rcode,"\n") %>%
+          paste0("## Load radiant if needed\nlibrary(", lib, ")\n\n", rcode,"\n") %>%
             cat(file = file, sep = "\n")
         } else {
-          if (rstudioapi::isAvailable() || !isTRUE(local)) {
-            paste0("```{r cache = FALSE, error = TRUE, echo = TRUE}\n\n", rcode,"\n```") %>%
-              cat(file = "rcode.Rmd", sep = "\n")
-            out <- rmarkdown::render("rcode.Rmd", switch(input$rcode_save,
-              PDF = rmarkdown::pdf_document(), HTML = rmarkdown::html_document(), Word = rmarkdown::word_document()
-            ), envir = r_environment)
-            file.rename(out, file)
-          } else {
-            paste0("```{r cache = FALSE, error = TRUE, echo = TRUE}\n", rcode ,"\n```") %>%
-              knitItSave %>% cat(file = file, sep = "\n")
-          }
+
+          withProgress(message = paste0("Saving output to ", input$rcode_save), value = 1,
+            if (rstudioapi::isAvailable() || !isTRUE(local)) {
+              paste0("```{r cache = FALSE, error = TRUE, echo = TRUE}\noptions(width = 250)\n\n", rcode,"\n```") %>%
+                cat(file = "rcode.Rmd", sep = "\n")
+              out <- rmarkdown::render("rcode.Rmd", switch(input$rcode_save,
+                Notebook = rmarkdown::html_notebook(highlight = "textmate", theme = "spacelab", code_folding = "show"),
+                HTML = rmarkdown::html_document(highlight = "textmate", theme = "spacelab", code_folding = "show", code_download = TRUE, df_print = "paged"),
+                PDF = rmarkdown::pdf_document(),
+                Word = rmarkdown::word_document()
+              ), envir = r_environment)
+              file.rename(out, file)
+            } else {
+              paste0("```{r cache = FALSE, error = TRUE, echo = TRUE}\n", rcode ,"\n```") %>%
+                knitItSave %>% cat(file = file, sep = "\n")
+            }
+          )
         }
       })
     }

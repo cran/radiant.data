@@ -5,7 +5,7 @@
 \title{Load a csv file with read.csv and read_csv}
 \usage{
 loadcsv(fn, .csv = FALSE, header = TRUE, sep = ",", dec = ".",
-  saf = TRUE, safx = 20)
+  n_max = Inf, saf = TRUE, safx = 20)
 }
 \arguments{
 \item{fn}{File name string}
@@ -18,6 +18,8 @@ loadcsv(fn, .csv = FALSE, header = TRUE, sep = ",", dec = ".",
 
 \item{dec}{Decimal symbol. Use . (default) or ,}
 
+\item{n_max}{Maximum number of rows to read}
+
 \item{saf}{Convert character variables to factors if (1) there are less than 100 distinct values (2) there are X (see safx) more values than levels}
 
 \item{safx}{Values to levels ratio}
@@ -28,4 +30,3 @@ Data frame with (some) variables converted to factors
 \description{
 Load a csv file with read.csv and read_csv
 }
-

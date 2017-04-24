@@ -40,7 +40,9 @@ output$ui_expl_vars <- renderUI({
 })
 
 output$ui_expl_byvar <- renderUI({
-  vars <- groupable_vars()
+  withProgress(message = "Acquiring variable information", value = 1, {
+    vars <- groupable_vars()
+  })
   if (not_available(vars)) return()
 
   if (any(vars %in% input$expl_vars)) {
@@ -99,7 +101,9 @@ output$ui_Explore <- renderUI({
       uiOutput("ui_expl_byvar"),
       uiOutput("ui_expl_fun"),
       uiOutput("ui_expl_top"),
-      numericInput("expl_dec", label = "Decimals:", value = state_init("expl_dec", 3), min = 0),
+      numericInput("expl_dec", label = "Decimals:", value = state_init("expl_dec", 3), min = 0)
+    ),
+    wellPanel(
       tags$table(
         tags$td(textInput("expl_dat", "Store as:", paste0(input$dataset,"_expl"))),
         tags$td(actionButton("expl_store", "Store"), style = "padding-top:30px;")
@@ -114,7 +118,7 @@ output$ui_Explore <- renderUI({
   if (not_available(input$expl_vars) || is.null(input$expl_top)) return()
   if (available(input$expl_byvar) && any(input$expl_byvar %in% input$expl_vars)) return()
   req(input$expl_pause == FALSE, cancelOutput = TRUE)
-  withProgress(message = 'Calculating', value = 0.5, {
+  withProgress(message = 'Calculating', value = 1, {
     sshhr( do.call(explore, expl_inputs()) )
   })
 })
@@ -156,7 +160,7 @@ output$explore <- DT::renderDataTable({
   order <- r_state$explore_state$order
   pageLength <- r_state$explore_state$length
 
-  withProgress(message = 'Generating explore table', value = 0.5,
+  withProgress(message = 'Generating explore table', value = 1,
     dtab(expl, dec = input$expl_dec, searchCols = searchCols, order = order,
          pageLength = pageLength)
   )

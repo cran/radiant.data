@@ -6,9 +6,9 @@
 \usage{
 visualize(dataset, xvar, yvar = "", comby = FALSE, combx = FALSE,
   type = "dist", facet_row = ".", facet_col = ".", color = "none",
-  fill = "none", bins = 10, smooth = 1, fun = "mean", check = "",
-  axes = "", alpha = 0.5, data_filter = "", shiny = FALSE,
-  custom = FALSE)
+  fill = "none", size = "none", bins = 10, smooth = 1, fun = "mean",
+  check = "", axes = "", alpha = 0.5, ylim = "none", data_filter = "",
+  shiny = FALSE, custom = FALSE)
 }
 \arguments{
 \item{dataset}{Dataset name (string). This can be a dataframe in the global environment or an element in an r_data list from Radiant}
@@ -31,6 +31,8 @@ visualize(dataset, xvar, yvar = "", comby = FALSE, combx = FALSE,
 
 \item{fill}{Display bar, distribution, and density plots by group, each with a different color. Also applied to surface plots to generate a 'heat map'}
 
+\item{size}{Numeric variable used to scale the size of scatter-plot points}
+
 \item{bins}{Number of bins used for a histogram (1 - 50)}
 
 \item{smooth}{Adjust the flexibility of the loess line for scatter plots}
@@ -42,6 +44,8 @@ visualize(dataset, xvar, yvar = "", comby = FALSE, combx = FALSE,
 \item{axes}{Flip the axes in a plot ("flip") or apply a log transformation (base e) to the y-axis ("log_y") or the x-axis ("log_x")}
 
 \item{alpha}{Opacity for plot elements (0 to 1)}
+
+\item{ylim}{Set limit for y-axis}
 
 \item{data_filter}{Expression used to filter the dataset. This should be a string (e.g., "price > 10000")}
 
@@ -61,16 +65,19 @@ See \url{http://radiant-rstats.github.io/docs/data/visualize.html} for an exampl
 \examples{
 visualize("diamonds", "price:x", type = "dist")
 visualize("diamonds", "carat:x", yvar = "price", type = "scatter")
+\dontrun{
 visualize(dataset = "diamonds", yvar = "price", xvar = c("cut","clarity"),
   type = "bar", fun = "median")
 visualize(dataset = "diamonds", yvar = "price", xvar = c("cut","clarity"),
   type = "line", fun = "max")
+visualize(dataset = "diamonds", yvar = "price", xvar = "carat", type = "scatter",
+          size = "table", custom = TRUE) + scale_size(range=c(1,10), guide = "none")
 visualize(dataset = "diamonds", yvar = "price", xvar = "carat", type = "scatter", custom = TRUE) +
-  ggtitle("A scatterplot") + xlab("price in $")
+  labs(title = "A scatterplot", x = "price in $")
 visualize(dataset = "diamonds", xvar = "price:carat", custom = TRUE) \%>\%
-  {.[[1]] + ggtitle("A histogram") + xlab("price in $")}
+  gridExtra::grid.arrange(grobs = ., top = "Histograms", ncol = 2)
 visualize(dataset = "diamonds", xvar = "cut", yvar = "price", type = "bar",
-  facet_row = "cut", fill = "cut", custom = FALSE)
-
+  facet_row = "cut", fill = "cut")
 }
 
+}

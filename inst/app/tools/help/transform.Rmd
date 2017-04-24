@@ -6,7 +6,7 @@ All transformations applied in the _Data > Transform_ tab can be logged. If, for
 
 ```r
 ## transform variable
-r_data[['diamonds']] <- mutate_each(r_data[['diamonds']], funs(log), ext = '_log', price, carat)
+r_data[["diamonds"]] <- mutate_ext(r_data[["diamonds"]], funs(log), price, carat, .ext = "_log")
 ```
 
 This is an important feature if you want to re-run a report with new, but similar, data. Even more important is that there is a record of the steps taken to transform the data and to generate results, i.e., your work is now reproducible.
@@ -26,7 +26,7 @@ For larger datasets, or when summaries are not needed, it can useful to click `H
 
 #### Bin
 
-The `Bin` command is a convenience function for the `xtile` command discussed below when you want to create multiple quitile/decile/... variables. To calculate quintiles enter `5` as the `Nr bins`. The `reverse` option replaces 1 by 5, 2 by 4, ..., 5 by 1. Choose an appropriate extension for the new variable(s).
+The `Bin` command is a convenience function for the `xtile` command discussed below when you want to create multiple quintile/decile/... variables. To calculate quintiles enter `5` as the `Nr bins`. The `reverse` option replaces 1 by 5, 2 by 4, ..., 5 by 1. Choose an appropriate extension for the new variable(s).
 
 #### Change type
 
@@ -96,7 +96,7 @@ lo:20 = 'Low'; else = 'High'
 
 #### Reorder or remove levels
 
-If a (single) variable of type `factor` is selected in `Select variable(s)`, choose `Reorder/Remove levels` from the `Transformation type` drop-down to reorder and/or remove levels. Drag-and-drop levels to reorder them or click the $\times$ to remove them. Press `Store` to commit the changes. To temporarily exclude levels from the data use the `Filter` box (see the help file linked in the <a href="https://radiant-rstats.github.io/docs/data/view.html" target="_blank">_Data > View_</a> tab).
+If a (single) variable of type `factor` is selected in `Select variable(s)`, choose `Reorder/Remove levels` from the `Transformation type` drop-down to reorder and/or remove levels. Drag-and-drop levels to reorder them or click the $\times$ to remove them. Note that, by default, removing one or more levels will introduce missing values in the data. If you prefer to recode the removed levels into a new level, for example "other", simply type "other" in the `Replacement level name` input box and press `return`. If the resulting factor levels appear as intended, press `Store` to commit the changes. To temporarily exclude levels from the data use the `Filter` box (see the help file linked in the <a href="https://radiant-rstats.github.io/docs/data/view.html" target="_blank">_Data > View_</a> tab).
 
 #### Rename
 
@@ -198,7 +198,7 @@ income_rc = ifelse(ID == 3, income/1000, income)
 income_rc = ifelse(ID %in% c(1, 3, 15), income/1000, income)
 ```
 
-12. If a date variable is in a format not available through the `Type` menu you can use the `parse_date_time` function. For a date formated as `2-1-14` you would specify the command below (note that this format will also be parsed correctly by the `mdy` function in the `Type` menu)
+12. If a date variable is in a format not available through the `Type` menu you can use the `parse_date_time` function. For a date formatted as `2-1-14` you would specify the command below (note that this format will also be parsed correctly by the `mdy` function in the `Type` menu)
 
 ```r
 date = parse_date_time(x, '%m%d%y')
@@ -234,7 +234,20 @@ dist = as_distance(lat1, long1, lat2, long2)
 rec_iq = xtile(recency, 5)
 ```
 
-Note: For examples 7, 8, and 15 above you may need to change the new variable to type `factor` before using it for further analysis (see also `Type` above)
+18. To reverse the ordering of the quintiles created in 17 above use `rev = TRUE`
+
+
+```r
+rec_iq = xtile(recency, 5, rev = TRUE)
+```
+
+18. To remove text from entries in a character or factor variable use `sub` to remove only the first instance or `gsub` to remove all instances. For example, suppose a each row for a variable `bk_score` has the letters "ltv" before a number (e.g., "ltv150"). We could replace each occurrence of "ltv" by "" as follows:
+
+```r
+bk_score = sub("ltv", "", bk_score)
+```
+
+Note: For examples 7, 8, and 15 above you may need to change the new variable to type `factor` before using it for further analysis (see also `Change type` above)
 
 
 ### Clean data

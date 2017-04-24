@@ -64,7 +64,11 @@ output$dataviewer <- DT::renderDataTable({
   if (is.null(search)) search <- ""
   fbox <- if (nrow(dat) > 5e6) "none" else list(position = "top")
 
-  withProgress(message = 'Generating view table', value = 0.5,
+  isBigFct <- sapply(dat, function(x) is.factor(x) && length(levels(x)) > 1000)
+  if (sum(isBigFct) > 0) 
+    dat[,isBigFct] <- select(dat, which(isBigFct)) %>% mutate_all(funs(as.character))
+
+  withProgress(message = "Generating view table", value = 1,
     DT::datatable(dat, filter = fbox, selection = "none",
       rownames = FALSE, style = "bootstrap", escape = FALSE,
       options = list(
@@ -125,8 +129,12 @@ output$dl_view_tab <- downloadHandler(
   ## shorten list of variales if possible
   vars <- input$view_vars
   cn <- colnames(.dataviewer()$tab)
+  ind <- which(cn %in% vars)
+
   if (length(vars) == length(cn)) {
     vars <- paste0(head(vars,1), ":", tail(vars,1))
+  } else if ((max(ind) - min(ind) + 1) == length(vars)) {
+    vars <- paste0(cn[min(ind)], ":", cn[max(ind)])
   } else if (length(vars) > (length(cn)/2)) {
     vars <- paste0("-", setdiff(cn, vars), collapse = ", ")
   } else {
@@ -134,17 +142,17 @@ output$dl_view_tab <- downloadHandler(
   }
 
   ## create the command to filter and sort the data
-  cmd <- paste0(cmd, "### filter and sort the dataset\nr_data[['", input$dataset, "']] %>%\n\tselect(", vars, ")")
+  cmd <- paste0(cmd, "### filter and sort the dataset\nr_data[[\"", input$dataset, "\"]] %>%\n\tselect(", vars, ")")
   if (input$show_filter && input$data_filter != "")
     cmd <- paste0(cmd, " %>%\n\tfilter(", input$data_filter, ")")
   if (ts$search != "")
-    cmd <- paste0(cmd, " %>%\n\tfilter(Search('", ts$search, "', .))")
+    cmd <- paste0(cmd, " %>%\n\tfilter(Search(\"", ts$search, "\", .))")
   if (ts$tabfilt != "")
     cmd <- paste0(cmd, " %>%\n\tfilter(", ts$tabfilt, ")")
   if (ts$tabsort != "")
     cmd <- paste0(cmd, " %>%\n\tarrange(", ts$tabsort, ")")
 
-  paste0(cmd, " %>%\n\tstore('", dataset, "', '", input$dataset, "')")
+  paste0(cmd, " %>%\n\tstore(\"", dataset, "\", \"", input$dataset, "\")")
 }
 
 observeEvent(input$view_report, {

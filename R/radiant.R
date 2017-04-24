@@ -29,6 +29,20 @@ install_webshot <- function() {
 #' @export
 set_attr <- function(x, which, value) `attr<-`(x, which, value)
 
+#' Copy attributes from on object to another
+#'
+#' @param to Object to copy attributes to
+#' @param from Object to copy attributes from
+#' @param attr Vector of attributes. If missing all attributes will be copied
+#
+#' @export
+copy_attr <- function(to, from, attr) {
+  if (missing(attr)) attr <- attributes(from)
+  for (i in attr)
+    to <- set_attr(to, i, attributes(from)[[i]])
+  to
+}
+
 #' Convenience function to add a class
 #'
 #' @param x Object
@@ -157,16 +171,23 @@ getdata <- function(dataset,
 #' @return Data frame with factors
 #'
 #' @export
-factorizer <- function(dat, safx = 20) {
+factorizer <- function(dat, safx = 30) {
   isChar <- sapply(dat, is.character)
   if (sum(isChar) == 0) return(dat)
-    toFct <-
-      select(dat, which(isChar)) %>%
-      summarise_each(funs(nrow(dat) < 101 | (n_distinct(.) < 100 & (n_distinct(.)/length(.)) < (1/safx)))) %>%
-      select(which(. == TRUE)) %>% names
+  fab <- function(x) {
+    n <- length(x)
+    if (n < 101) return(TRUE)
+    nd <- length(unique(x)) 
+    nd < 100 && (nd/n < (1/safx))
+  }
+  toFct <-
+    select(dat, which(isChar)) %>%
+    summarise_all(funs(fab)) %>%
+    select(which(. == TRUE)) %>% 
+    names
   if (length(toFct) == 0) return(dat)
-
-  mutate_each_(dat, funs(as.factor), vars = toFct)
+  
+  mutate_at(dat, .cols = toFct, .funs = funs(as.factor))
 }
 
 #' Load an rda or rds file and add it to the radiant data list (r_data) if available
@@ -251,18 +272,21 @@ saver <- function(objname, file) {
 #' @param header Header in file (TRUE, FALSE)
 #' @param sep Use , (default) or ; or \\t
 #' @param dec Decimal symbol. Use . (default) or ,
+#' @param n_max Maximum number of rows to read
 #' @param saf Convert character variables to factors if (1) there are less than 100 distinct values (2) there are X (see safx) more values than levels
 #' @param safx Values to levels ratio
 #'
 #' @return Data frame with (some) variables converted to factors
 #'
 #' @export
-loadcsv <- function(fn, .csv = FALSE, header = TRUE, sep = ",", dec = ".", saf = TRUE, safx = 20) {
+loadcsv <- function(fn, .csv = FALSE, header = TRUE, sep = ",", dec = ".", n_max = Inf, saf = TRUE, safx = 20) {
 
   rprob <- ""
-  cn <- read.table(fn, header = header, sep = sep, comment.char = "", quote = "\"", fill = TRUE, stringsAsFactors = FALSE, nrows = 1)
+  n_max <- if (is_not(n_max) || n_max == -1) Inf else n_max
+
   if (.csv == FALSE) {
-    dat <- try(readr::read_delim(fn, sep, col_names = colnames(cn), skip = header), silent = TRUE)
+    cn <- read.table(fn, header = header, sep = sep, dec = dec, comment.char = "", quote = "\"", fill = TRUE, stringsAsFactors = FALSE, nrows = 1)
+    dat <- sshhr(try(readr::read_delim(fn, sep, locale = readr::locale(decimal_mark = dec, grouping_mark = sep), col_names = colnames(cn), skip = header, n_max = n_max), silent = TRUE))
     if (!is(dat, 'try-error')) {
       prb <- readr::problems(dat)
       if (nrow(prb) > 0) {
@@ -272,15 +296,13 @@ loadcsv <- function(fn, .csv = FALSE, header = TRUE, sep = ",", dec = ".", saf =
       rm(prb)
     }
   } else {
-    dat <- try(read.table(fn, header = header, sep = sep, comment.char = "", quote = "\"", fill = TRUE, stringsAsFactors = FALSE), silent = TRUE)
+    dat <- sshhr(try(read.table(fn, header = header, sep = sep, dec = dec, comment.char = "", quote = "\"", fill = TRUE, stringsAsFactors = FALSE, nrows = n_max), silent = TRUE))
     rprob <- "Used read.csv to load file"
   }
 
   if (is(dat, 'try-error')) return("### There was an error loading the data. Please make sure the data are in csv format.")
   if (saf) dat <- factorizer(dat, safx)
-  dat <- as.data.frame(dat)
-  attr(dat, "description") <- rprob
-  dat
+  as.data.frame(dat) %>% set_attr("description", rprob)
 }
 
 #' Load a csv file with from a url
@@ -289,6 +311,7 @@ loadcsv <- function(fn, .csv = FALSE, header = TRUE, sep = ",", dec = ".", saf =
 #' @param header Header in file (TRUE, FALSE)
 #' @param sep Use , (default) or ; or \\t
 #' @param dec Decimal symbol. Use . (default) or ,
+#' @param n_max Maximum number of rows to read
 #' @param saf Convert character variables to factors if (1) there are less than 100 distinct values (2) there are X (see safx) more values than levels
 #' @param safx Values to levels ratio
 #'
@@ -297,16 +320,18 @@ loadcsv <- function(fn, .csv = FALSE, header = TRUE, sep = ",", dec = ".", saf =
 #' @importFrom curl curl
 #'
 #' @export
-loadcsv_url <- function(csv_url, header = TRUE, sep = ",", dec = ".", saf = TRUE, safx = 20) {
+loadcsv_url <- function(csv_url, header = TRUE, sep = ",", dec = ".", n_max = Inf, saf = TRUE, safx = 20) {
   con <- curl(gsub("^\\s+|\\s+$", "", csv_url))
   try(open(con), silent = TRUE)
   if (is(con, 'try-error')) {
     close(con)
     return("### There was an error loading the csv file from the provided url.")
   } else {
-    dat <- try(read.table(con, header = header, comment.char = "",
-               quote = "\"", fill = TRUE, stringsAsFactors = saf,
-               sep = sep, dec = dec), silent = TRUE)
+    dat <- sshhr(
+             try(read.table(con, header = header, comment.char = "",
+             quote = "\"", fill = TRUE, stringsAsFactors = saf,
+             sep = sep, dec = dec, nrows = n_max), silent = TRUE)
+           )
     close(con)
 
     if (is(dat, 'try-error'))
@@ -586,7 +611,7 @@ copy_all <- function(.from) {
 
 #' Print/draw method for grobs produced by gridExtra
 #'
-#' @details Print method for ggplot grobs created using arrangeGrob. Code is based on \url{https://github.com/baptiste/gridextra/blob/master/inst/testing/shiny.R}
+#' @details Print method for ggplot grobs created using grid.arrange. Code is based on \url{https://github.com/baptiste/gridextra/blob/master/inst/testing/shiny.R}
 #'
 #' @param x a gtable object
 #' @param ... further arguments passed to or from other methods
@@ -678,7 +703,7 @@ formatdf <- function(tbl, dec = 3, perc = FALSE, mark = "") {
     }
   }
 
-  mutate_each(tbl, funs(frm))
+  mutate_all(tbl, .funs = funs(frm))
 }
 
 #' Format a number with a specified number of decimal places, thousand sep, and a symbol
@@ -716,15 +741,12 @@ formatnr <- function(x, sym = "", dec = 2, perc = FALSE, mark = ",") {
 #' @return Data frame with rounded doubles
 #'
 #' @examples
-#' data.frame(x = c("a","b"), y = c(1L, 2L), z = c(-0.0005, 3.1)) %>%
+#' data.frame(x = as.factor(c("a","b")), y = c(1L, 2L), z = c(-0.0005, 3.1)) %>%
 #'   rounddf(dec = 3)
 #'
 #' @export
-rounddf <- function(tbl, dec = 3) {
-  mutate_each(tbl,
-    funs(if (is.double(.)) round(., dec) else .)
-  )
-}
+rounddf <- function(tbl, dec = 3) 
+  mutate_if_tmp(tbl, is.double, .funs = funs(round(., dec)))
 
 #' Find a user's dropbox folder
 #'
@@ -783,7 +805,7 @@ find_dropbox <- function(account = 1) {
 #' which.pmax(2, 10:1)
 #'
 #' @export
-which.pmax <- function(...) unname(apply(cbind(...), 1, which.max))
+which.pmax <- function(...) as.integer(unname(unlist(apply(cbind(...), 1, which.max))))
 
 #' Returns the index of the (parallel) minima of the input values
 #'
@@ -806,17 +828,50 @@ which.pmin <- function(...) unname(apply(cbind(...), 1, which.min))
 #' @export
 store <- function(object, ...) UseMethod("store", object)
 
+#' Method for error messages that a user tries to store
+#'
+#' @param object Object of type character
+#' @param ... Additional arguments
+#'
+#' @export
+store.character <- function(object, ...) {
+  mess <- paste0("Unable to store output. The returned message was:\n\n", object)
+  if (exists("r_environment")) {
+    session$sendCustomMessage(type = "message", message = gsub("\n", " ", mess))
+    # string_to_break <-"alert(\"Line1.\\nLine2.\");"
+    # session$sendCustomMessage(type='jsCode', list(value = string_to_break ))
+  } else {
+    message(mess)
+  }
+}
+
 #' Find index corrected for missing values and filters
 #'
 #' @param dataset Dataset name
 #' @param vars Variables to select
 #' @param filt Data filter
+#' @param cmd A command used to customize the data
 #'
 #' @export
-indexr <- function(dataset, vars = "", filt = "") {
+indexr <- function(dataset, vars = "", filt = "", cmd = "") {
   dat <- getdata(dataset, na.rm = FALSE)
-  if (is_empty(vars)) vars <- colnames(dat)
+  if (is_empty(vars) || sum(vars %in% colnames(dat)) != length(vars))
+    vars <- colnames(dat)
   nrows <- nrow(dat)
+
+  ## customizing data if a command was used
+  if (!is_empty(cmd)) {
+    pred_cmd <- gsub("\"","\'", cmd) %>% gsub(" ","",.)
+    cmd_vars <-
+      strsplit(pred_cmd, ";")[[1]] %>% strsplit(., "=") %>%
+      sapply("[", 1) %>% gsub(" ","",.)
+    dots <- strsplit(pred_cmd, ";")[[1]] %>% gsub(" ","",.)
+    for (i in seq_along(dots))
+      dots[[i]] <- sub(paste0(cmd_vars[[i]],"="),"",dots[[i]])
+
+    dat <- try(mutate_(dat, .dots = setNames(dots, cmd_vars)), silent = TRUE)
+  }
+
   ind <-
     mutate(dat, imf___ = 1:nrows) %>%
     {if (filt == "") . else filterdata(., filt)} %>%
@@ -903,7 +958,7 @@ describe <- function(name) {
     return(str(dat))
 
   owd <- setwd(tempdir())
-  on.exit(owd)
+  on.exit(setwd(owd))
 
   ## generate html and open on the Rstudio viewer or in the default browser
   description %>% knitr::knit2html(text = .) %>% cat(file = "index.html")

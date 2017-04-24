@@ -74,19 +74,22 @@ ifelse (grepl("radiant.data", getwd()) && file.exists("../../inst") , "..", syst
   options(radiant.path.data = .)
 
 ## print options
-options(width  = 250, scipen = 100)
+options(width = 250, scipen = 100)
+options(max.print = max(getOption("max.print"), 5000))
 
 ## list of function arguments
 list("n" = "length", "n_missing" = "n_missing", "n_distinct" = "n_distinct",
-     "mean" = "mean_rm", "median" = "median_rm", "sum" = "sum_rm",
-     "var" = "var_rm", "sd" = "sd_rm", "se" = "se", "cv" = "cv", "varp" = "varp_rm",
-     "sdp" = "sdp_rm", "min" = "min_rm", "max" = "max_rm", "5%" = "p05",
-     "10%" = "p10", "25%" = "p25", "75%" = "p75", "90%" = "p90", "95%" = "p95",
-     "skew" = "skew","kurtosis" = "kurtosi") %>%
+     "mean" = "mean_rm", "median" = "median_rm", "min" = "min_rm",
+     "max" = "max_rm", "sum" = "sum_rm",
+     "var" = "var_rm", "sd" = "sd_rm", "se" = "se", "cv" = "cv",
+     "prop" = "prop", "varprop" = "varprop", "sdprop" = "sdprop", "seprop" = "seprop",
+     "varpop" = "varpop", "sdpop" = "sdpop",
+     "5%" = "p05", "10%" = "p10", "25%" = "p25", "75%" = "p75", "90%" = "p90",
+     "95%" = "p95", "skew" = "skew","kurtosis" = "kurtosi") %>%
 options(radiant.functions = .)
 
 ## for report and code in menu R
-knitr::opts_knit$set(progress = TRUE )
+knitr::opts_knit$set(progress = TRUE)
 knitr::opts_chunk$set(echo = FALSE, comment = NA, cache = FALSE,
   message = FALSE, warning = FALSE, error = TRUE,
   # screenshot.force = FALSE,
@@ -149,7 +152,7 @@ addResourcePath("js", file.path(getOption("radiant.path.data"), "app/www/js/"))
 
 options(radiant.mathjax.path = "https://cdn.mathjax.org/mathjax/latest")
 
-## using mathjax bundeled with Rstudio if available
+# using mathjax bundeled with Rstudio if available
 # if (Sys.getenv("RMARKDOWN_MATHJAX_PATH") == "") {
 #   options(radiant.mathjax.path = "https://cdn.mathjax.org/mathjax/latest")
 # } else {
@@ -180,6 +183,7 @@ help_menu <- function(hlp) {
       tags$script(src = "js/returnTextInputBinding.js"),
       tags$script(src = "js/video_reset.js"),
       tags$script(src = "js/message-handler.js"),
+      tags$script(src = "js/run_return.js"),
       # tags$script(src = "js/draggable_modal.js"),
       tags$link(rel = "shortcut icon", href = "imgs/icon.png")
     )
@@ -195,7 +199,7 @@ help_menu <- function(hlp) {
 # https://groups.google.com/forum/#!topic/shiny-discuss/Xgxq08N8HBE
 # https://gist.github.com/jcheng5/5427d6f264408abf3049
 
-## try http://127.0.0.1:3174/?url=decide/simulate/&SSUID=local
+## try http://127.0.0.1:3174/?url=multivariate/conjoint/plot/&SSUID=local
 options(radiant.url.list =
   list("Data" = list("tabs_data" = list("Manage"    = "data/",
                                         "View"      = "data/view/",

@@ -18,8 +18,8 @@ Convert variable to integer avoiding potential issues with factors
 \examples{
 as_integer(rnorm(10))
 as_integer(letters)
-as_integer(5:10 \%>\% as.factor)
-as.integer(5:10 \%>\% as.factor)
+as_integer(as.factor(5:10))
+as.integer(as.factor(5:10))
+as_integer(c("a","b"))
 
 }
-
