@@ -15,15 +15,17 @@ flip(expl, top = "fun")
 Flip the DT table to put Function, Variable, or Group by on top
 }
 \details{
-See \url{http://radiant-rstats.github.io/docs/data/explore.html} for an example in Radiant
+See \url{https://radiant-rstats.github.io/docs/data/explore.html} for an example in Radiant
 }
 \examples{
-result <- explore("diamonds", "price:x", top = "var")
-result <- explore("diamonds", "price", byvar = "cut", fun = c("length", "skew"), top = "byvar")
+explore(diamonds, "price:x", top = "var") \%>\% summary()
+explore(diamonds, "price", byvar = "cut", fun = c("n_obs", "skew"), top = "byvar") \%>\% summary()
 
 }
 \seealso{
-\code{\link{explore}} to generate summaries
+\code{\link{explore}} to calculate summaries
+
+\code{\link{summary.explore}} to show summaries
 
 \code{\link{dtab.explore}} to create the DT table
 }

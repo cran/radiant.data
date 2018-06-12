@@ -2,15 +2,15 @@
 % Please edit documentation in R/radiant.R
 \name{render.datatables}
 \alias{render.datatables}
-\title{Method to render DT tabels}
+\title{Method to render DT tables}
 \usage{
 \method{render}{datatables}(object, ...)
 }
 \arguments{
-\item{object}{DT table plot}
+\item{object}{DT table}
 
 \item{...}{Additional arguments}
 }
 \description{
-Method to render DT tabels
+Method to render DT tables
 }

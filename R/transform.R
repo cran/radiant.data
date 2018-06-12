@@ -1,18 +1,22 @@
 #' Center
 #' @param x Input variable
 #' @param na.rm If TRUE missing values are removed before calculation
-#' @return If x is a numberic variable return x - mean(x)
+#' @return If x is a numeric variable return x - mean(x)
 #' @export
 center <- function(x, na.rm = TRUE)
-	if (is.numeric(x)) { x - mean(x, na.rm = na.rm) } else x
+  if (is.numeric(x)) {
+    x - mean(x, na.rm = na.rm)
+  } else {
+    x
+  }
 
 #' Standardize
 #' @param x Input variable
 #' @param na.rm If TRUE missing values are removed before calculation
-#' @return If x is a numberic variable return center(x) / mean(x)
+#' @return If x is a numeric variable return center(x) / mean(x)
 #' @export
 standardize <- function(x, na.rm = TRUE) {
-	if (is.numeric(x)) {
+  if (is.numeric(x)) {
     center(x, na.rm = na.rm) / sd(x, na.rm = na.rm)
   } else {
     x
@@ -23,22 +27,24 @@ standardize <- function(x, na.rm = TRUE) {
 #' @param x Input variable
 #' @return x^2
 #' @export
-square <- function(x) x^2
+square <- function(x) x ^ 2
 
 #' Calculate inverse of a variable
 #' @param x Input variable
 #' @return 1/x
 #' @export
-inverse <- function(x)
-  if (is.numeric(x)) 1/x else x
+inverse <- function(x) {
+  if (is.numeric(x)) 1 / x else x
+}
 
 #' Normalize a variable x by a variable y
 #' @param x Input variable
 #' @param y Normalizing variable
 #' @return x/y
 #' @export
-normalize <- function(x, y)
-  if (is.numeric(x) && is.numeric(y)) x/y else x
+normalize <- function(x, y) {
+  if (is.numeric(x) && is.numeric(y)) x / y else x
+}
 
 #' Convert input in month-day-year format to date
 #' @details Use as.character if x is a factor
@@ -48,12 +54,14 @@ normalize <- function(x, y)
 #' as_mdy("2-1-2014")
 #' \dontrun{
 #' as_mdy("2-1-2014") %>% month(label = TRUE)
-#' as_mdy("2-1-2014") %>% week
+#' as_mdy("2-1-2014") %>% week()
 #' as_mdy("2-1-2014") %>% wday(label = TRUE)
 #' }
 #' @export
-as_mdy <- function(x)
-  {if (is.factor(x)) as.character(x) else x} %>% {sshhr(mdy(.))} %>% as.Date
+as_mdy <- function(x) {
+  if (is.factor(x)) x <- as.character(x)
+  sshhr(mdy(x)) %>% as.Date()
+}
 
 #' Convert input in day-month-year format to date
 #' @param x Input variable
@@ -62,8 +70,10 @@ as_mdy <- function(x)
 #' as_dmy("1-2-2014")
 #'
 #' @export
-as_dmy <- function(x)
-  {if (is.factor(x)) as.character(x) else x } %>% {sshhr(dmy(.))} %>% as.Date
+as_dmy <- function(x) {
+  if (is.factor(x)) x <- as.character(x)
+  sshhr(dmy(x)) %>% as.Date()
+}
 
 #' Convert input in year-month-day format to date
 #' @param x Input variable
@@ -72,8 +82,10 @@ as_dmy <- function(x)
 #' as_ymd("2013-1-1")
 #'
 #' @export
-as_ymd <- function(x)
-  {if (is.factor(x)) as.character(x) else x } %>% {sshhr(ymd(.))} %>% as.Date
+as_ymd <- function(x) {
+  if (is.factor(x)) x <- as.character(x)
+  sshhr(ymd(x)) %>% as.Date()
+}
 
 # http://www.noamross.net/blog/2014/2/10/using-times-and-dates-in-r---presentation-code.html
 #' Convert input in year-month-day-hour-minute-second format to date-time
@@ -87,8 +99,10 @@ as_ymd <- function(x)
 #' as_ymd_hms("2014-1-1 12:15:01") %>% hour
 #' }
 #' @export
-as_ymd_hms <- function(x)
- {if (is.factor(x)) as.character(x) else x} %>% {sshhr(ymd_hms(.))}
+as_ymd_hms <- function(x) {
+  if (is.factor(x)) x <- as.character(x)
+  sshhr(ymd_hms(x))
+}
 
 #' Convert input in year-month-day-hour-minute format to date-time
 #' @param x Input variable
@@ -97,8 +111,8 @@ as_ymd_hms <- function(x)
 #' as_ymd_hm("2014-1-1 12:15")
 #' @export
 as_ymd_hm <- function(x) {
-  {if (is.factor(x)) as.character(x) else x} %>%
-    {sshhr(parse_date_time(., "%Y%m%d %H%M"))}
+  if (is.factor(x)) x <- as.character(x)
+  sshhr(parse_date_time(x, "%Y%m%d %H%M"))
 }
 
 #' Convert input in month-day-year-hour-minute-second format to date-time
@@ -108,8 +122,8 @@ as_ymd_hm <- function(x) {
 #' as_mdy_hms("1-1-2014 12:15:01")
 #' @export
 as_mdy_hms <- function(x) {
-  {if (is.factor(x)) as.character(x) else x} %>%
-    {sshhr(parse_date_time(., "%m%d%Y %H%M%S"))}
+  if (is.factor(x)) x <- as.character(x)
+  sshhr(parse_date_time(x, "%m%d%Y %H%M%S"))
 }
 
 #' Convert input in month-day-year-hour-minute format to date-time
@@ -119,8 +133,8 @@ as_mdy_hms <- function(x) {
 #' as_mdy_hm("1-1-2014 12:15")
 #' @export
 as_mdy_hm <- function(x) {
-  {if (is.factor(x)) as.character(x) else x} %>%
-    {sshhr(parse_date_time(., "%m%d%Y %H%M"))}
+  if (is.factor(x)) x <- as.character(x)
+  sshhr(parse_date_time(x, "%m%d%Y %H%M"))
 }
 
 #' Convert input in day-month-year-hour-minute-second format to date-time
@@ -130,8 +144,8 @@ as_mdy_hm <- function(x) {
 #' as_mdy_hms("1-1-2014 12:15:01")
 #' @export
 as_dmy_hms <- function(x) {
-  {if (is.factor(x)) as.character(x) else x} %>%
-    {sshhr(parse_date_time(., "%d%m%Y %H%M%S"))}
+  if (is.factor(x)) x <- as.character(x)
+  sshhr(parse_date_time(x, "%d%m%Y %H%M%S"))
 }
 
 #' Convert input in day-month-year-hour-minute format to date-time
@@ -141,8 +155,8 @@ as_dmy_hms <- function(x) {
 #' as_mdy_hm("1-1-2014 12:15")
 #' @export
 as_dmy_hm <- function(x) {
-  {if (is.factor(x)) as.character(x) else x} %>%
-    {sshhr(parse_date_time(x, "%d%m%Y %H%M"))}
+  if (is.factor(x)) x <- as.character(x)
+  sshhr(parse_date_time(x, "%d%m%Y %H%M"))
 }
 
 #' Convert input in hour-minute-second format to time
@@ -155,8 +169,10 @@ as_dmy_hm <- function(x) {
 #' as_hms("12:45:00") %>% second
 #' }
 #' @export
-as_hms <- function(x)
-  {if (is.factor(x)) as.character(x) else x} %>% {sshhr(hms(.))}
+as_hms <- function(x) {
+  if (is.factor(x)) x <- as.character(x)
+  sshhr(hms(x))
+}
 
 #' Convert input in hour-minute format to time
 #' @param x Input variable
@@ -164,11 +180,13 @@ as_hms <- function(x)
 #' @examples
 #' as_hm("12:45")
 #' \dontrun{
-#' as_hm("12:45") %>% minute
+#' as_hm("12:45") %>% minute()
 #' }
 #' @export
-as_hm <- function(x)
-  {if (is.factor(x)) as.character(x) else x} %>% {sshhr(hm(.))}
+as_hm <- function(x) {
+  if (is.factor(x)) x <- as.character(x)
+  sshhr(hm(x))
+}
 
 #' Convert variable to integer avoiding potential issues with factors
 #' @param x Input variable
@@ -183,7 +201,7 @@ as_hm <- function(x)
 #' @export
 as_integer <- function(x) {
   if (is.factor(x)) {
-    int <- sshhr(levels(x) %>% .[x] %>% as.integer)
+    int <- sshhr(levels(x) %>% .[x] %>% as.integer())
     if (length(na.omit(int)) == 0) as.integer(x) else int
   } else if (is.character(x)) {
     int <- sshhr(as.integer(x))
@@ -207,7 +225,7 @@ as_integer <- function(x) {
 #' @export
 as_numeric <- function(x) {
   if (is.factor(x)) {
-    num <- sshhr(levels(x) %>% .[x] %>% as.numeric)
+    num <- sshhr(levels(x) %>% .[x] %>% as.numeric())
     if (length(na.omit(num)) == 0) as.numeric(x) else num
   } else if (is.character(x)) {
     num <- sshhr(as.numeric(x))
@@ -241,24 +259,25 @@ as_duration <- function(x) as.numeric(lubridate::as.duration(x))
 #' @param lat2 Latitude of location 2
 #' @param unit Measure kilometers ("km", default) or miles ("miles")
 #' @param R Radius of the earth
-#' @return Distance bewteen two points
+#' @return Distance between two points
 #' @examples
 #' as_distance(32.8245525,-117.0951632, 40.7033127,-73.979681, unit = "km")
 #' as_distance(32.8245525,-117.0951632, 40.7033127,-73.979681, unit = "miles")
 #'
 #' @export
-as_distance <- function (lat1, long1, lat2, long2,
-                         unit = "km",
-                         R = c("km" = 6371, "miles" = 3959)[[unit]]) {
+as_distance <- function(
+  lat1, long1, lat2, long2,
+  unit = "km", R = c("km" = 6371, "miles" = 3959)[[unit]]
+) {
 
-    rad <- pi/180
-    d1 <- lat1 * rad
-    d2 <- lat2 * rad
-    dlat <- (lat2 - lat1) * rad
-    dlong <- (long2 - long1) * rad
-    a <- sin(dlat/2)^2 + cos(d1) * cos(d2) * sin(dlong/2)^2
-    c <- 2 * atan2(sqrt(a), sqrt(1 - a))
-    R * c
+  rad <- pi / 180
+  d1 <- lat1 * rad
+  d2 <- lat2 * rad
+  dlat <- (lat2 - lat1) * rad
+  dlong <- (long2 - long1) * rad
+  a <- sin(dlat / 2) ^ 2 + cos(d1) * cos(d2) * sin(dlong / 2) ^ 2
+  c <- 2 * atan2(sqrt(a), sqrt(1 - a))
+  R * c
 }
 
 #' Generate a variable used to selected a training sample
@@ -271,15 +290,16 @@ as_distance <- function (lat1, long1, lat2, long2,
 #'
 #' @export
 make_train <- function(n = .7, nr = 100, seed = 1234) {
-  seed %>% gsub("[^0-9]","",.) %>% { if (!is_empty(.)) set.seed(seed) }
+  seed %>% gsub("[^0-9]", "", .) %>% 
+    {if (!is_empty(.)) set.seed(seed)}
   if (n < 1) n <- round(n * nr) %>% max(1)
   ind <- seq_len(nr)
-  training <- rep_len(0L,nr)
-  training[sample(ind,n)] <- 1L
+  training <- rep_len(0L, nr)
+  training[sample(ind, n)] <- 1L
   training
 }
 
-#' Add tranformed variables to a data frame (NSE)
+#' Add transformed variables to a data frame with the option to include a custom variable name extension
 #'
 #' @details Wrapper for dplyr::mutate_at that allows custom variable name extensions
 #'
@@ -287,51 +307,38 @@ make_train <- function(n = .7, nr = 100, seed = 1234) {
 #' @param .funs Function(s) to apply (e.g., funs(log))
 #' @param ... Variables to transform
 #' @param .ext Extension to add for each variable
+#' @param .vars A list of columns generated by dplyr::vars(), or a character vector of column names, or a numeric vector of column positions.
 #'
 #' @examples
-#' mutate_ext(mtcars, funs(log), mpg, cyl, .ext = "_log")
-#' mutate_ext(mtcars, funs(log), .ext = "_log")
-#'
-#' @importFrom pryr named_dots
+#' mutate_ext(mtcars, funs(log), mpg, cyl, .ext = "_ln")
+#' mutate_ext(mtcars, funs(log), .ext = "_ln")
+#' mutate_ext(mtcars, funs(log))
+#' mutate_ext(mtcars, funs(log), .ext = "_ln", .vars = vars(mpg, cyl))
 #'
 #' @export
-mutate_ext <- function(.tbl, .funs, ..., .ext = "") {
+mutate_ext <- function(.tbl, .funs, ..., .ext = "", .vars = c()) {
+  if (length(.vars) == 0) {
+    ## from https://stackoverflow.com/a/35317870/1974918
+    .vars <- sapply(substitute(list(...))[-1], deparse)
+    if (length(.vars) == 0) {
+      .vars <- colnames(.tbl)
+    }
+  }
 
   if (is_empty(.ext)) {
-    dplyr::mutate_at(.tbl, .cols = vars(...), .funs = funs)
+    dplyr::mutate_at(.tbl, .vars = .vars, .funs = .funs) %>%
+      set_rownames(rownames(.tbl))
   } else {
-    vars <- pryr::named_dots(...) %>% names
-    if (is.null(vars)) vars <- colnames(.tbl)
-
-    new <- paste0(vars, .ext)
-    .tbl[,new] <-
-      mutate_at(.tbl, .cols = vars, .funs = .funs) %>% select_(.dots = vars) %>%
+    new <- gsub("^~", "", .vars) %>% paste0(., .ext)
+    .tbl[, new] <- transmute_at(.tbl, .vars = .vars, .funs = .funs) %>%
       set_colnames(new)
     .tbl
   }
 }
 
-#' Temporary fix for mutate_if when the predicate is false for all columns 
+#' Create quantiles
 #'
-#' @details See https://github.com/tidyverse/dplyr/issues/2617
-#'
-#' @param .tbl Data frame
-#' @param .predicate Predicate
-#' @param .funs Function(s) to apply (e.g., funs(log))
-#' @param ... Additional arguments
-#'
-#' @export
-mutate_if_tmp <- function (.tbl, .predicate, .funs, ...) {
-  if (sum(sapply(.tbl, .predicate)) > 0) { 
-    mutate_if(.tbl, .predicate, .funs, ...)
-  } else {
-    .tbl
-  }
-}
-
-#' Create a quintile (or decile) index
-#'
-#' @details Same as stata
+#' @details Approach used produces results most similar to Stata
 #'
 #' @param x Numeric variable
 #' @param n number of bins to create
@@ -342,19 +349,26 @@ mutate_if_tmp <- function (.tbl, .predicate, .funs, ...) {
 #' xtile(1:10,5, rev = TRUE)
 #'
 #' @export
-xtile <- function(x, n, rev = FALSE) {
-  stopifnot(is.numeric(n), is.numeric(x), n > 1, length(x) > n)
-  breaks <- quantile(x, prob = seq(0, 1, length = n+1), type = 2)
-  if (length(breaks) < 2) stop(paste("Insufficient variation in x to construct",n,"breaks"))
+xtile <- function(x, n = 5, rev = FALSE) {
+  if (!is.numeric(x)) {
+    stop(paste0("The variable to bin must be of type {numeric} but is of type {", class(x)[1], "}"), call. = FALSE)
+  } else if (n < 1) {
+    stop(paste0("The number of bins must be > 1 but is ", n), call. = FALSE)
+  } else if (length(x) < n) {
+    stop(paste("The number of bins to create is larger than\nthe number of data points. Perhaps you grouped the data before\ncalling the xtile function and the number of observations per\ngroup is too small"), call. = FALSE)
+  }
+
+  breaks <- quantile(x, prob = seq(0, 1, length = n + 1), type = 2)
+  if (length(breaks) < 2) stop(paste("Insufficient variation in x to construct", n, "breaks"), call. = FALSE)
   .bincode(x, breaks, include.lowest = TRUE) %>%
-  { if (rev) as.integer((n+1) - .) else .}
+    {if (rev) as.integer((n + 1) - .) else .}
 }
 
 #' Show all rows with duplicated values (not just the first or last)
 #'
 #' @details If an entire row is duplicated use "duplicated" to show only one of the duplicated rows. When using a subset of variables to establish uniqueness it may be of interest to show all rows that have (some) duplicate elements
 #'
-#' @param tbl Data frame to add transformed variables to
+#' @param .tbl Data frame to add transformed variables to
 #' @param ... Variables used to evaluate row uniqueness
 #'
 #' @examples
@@ -363,19 +377,18 @@ xtile <- function(x, n, rev = FALSE) {
 #' bind_rows(mtcars, mtcars[c(1,5,7),]) %>%
 #'   show_duplicated
 #'
-#' @importFrom pryr named_dots
-#'
 #' @export
-show_duplicated <- function(tbl, ...) {
-  vars <- pryr::named_dots(...) %>% names
-  if (is.null(vars) || length(unique(vars)) == ncol(tbl)) {
-    filter(tbl, duplicated(tbl))
+show_duplicated <- function(.tbl, ...) {
+  .vars <- sapply(substitute(list(...))[-1], deparse)
+  if (length(.vars) == 0 || length(unique(.vars)) == ncol(.tbl)) {
+    filter(.tbl, duplicated(.tbl))
   } else {
-    tbl %>% group_by_(.dots = vars) %>%
+    .tbl %>%
+      group_by_at(.vars = .vars) %>%
       filter(n() > 1) %>%
       mutate(nr_dup = 1:n()) %>%
-      arrange_(.dots = vars) %>%
-      ungroup
+      arrange_at(.vars = .vars) %>%
+      ungroup()
   }
 }
 
@@ -393,43 +406,52 @@ weighted.sd <- function(x, wt, na.rm = TRUE) {
     x <- na.omit(x)
     wt <- na.omit(wt)
   }
-  wt <- wt/sum(wt)
+  wt <- wt / sum(wt)
   wm <- weighted.mean(x, wt)
-  sqrt(sum(wt * (x - wm)^2))
+  sqrt(sum(wt * (x - wm) ^ 2))
 }
 
 #' Create data.frame summary
 #'
 #' @details Used in Radiant's Data > Transform tab
 #'
-#' @param dat Data.frame
+#' @param dataset Data.frame
 #' @param dc Class for each variable
 #'
 #' @export
-getsummary <- function(dat, dc = getclass(dat)) {
-
+get_summary <- function(dataset, dc = get_class(dataset)) {
   isFct <- "factor" == dc
-  isNum <- "numeric" == dc | "integer" == dc | "Duration" == dc
+  isNum <- dc %in% c("numeric", "integer", "Duration")
   isDate <- "date" == dc
   isChar <- "character" == dc
   isLogic <- "logical" == dc
   isPeriod <- "period" == dc
 
   if (sum(isNum) > 0) {
-
     cn <- names(dc)[isNum]
 
     cat("Summarize numeric variables:\n")
-    select(dat, which(isNum)) %>%
-      tidyr::gather_("variable", "values", cn, factor_key = TRUE) %>%
-      group_by_("variable") %>%
-      summarise_all(funs(n = length, n_missing = n_missing, n_distinct = n_distinct,
-                     mean = mean_rm, median = median_rm, min = min_rm, max = max_rm,
-                     `25%` = p25, `75%` = p75, sd = sd_rm, se = se)) %>%
-      data.frame(check.names = FALSE) %>%
-      ## can't use mutate_if here due to https://github.com/tidyverse/dplyr/issues/2243 
-      # mutate_if_tmp(is.numeric, funs(round(., 3))) %>%
-      mutate_all(funs(if (is.numeric(.)) round(., 3) else .)) %>%
+    select(dataset, which(isNum)) %>%
+      gather("variable", "values", !! cn, factor_key = TRUE) %>%
+      group_by_at(.vars = "variable") %>%
+      summarise_all(
+        funs(
+          n_obs = n_obs,
+          n_missing = n_missing,
+          n_distinct = n_distinct,
+          mean = mean,
+          median = median,
+          min = min,
+          max = max,
+          `25%` = p25,
+          `75%` = p75,
+          sd = sd,
+          se = se
+        ),
+        na.rm = TRUE
+      ) %>%
+      data.frame(check.names = FALSE, stringsAsFactors = FALSE) %>%
+      mutate_if(is.numeric, funs(round(., 3))) %>%
       set_colnames(c("", colnames(.)[-1])) %>%
       print(row.names = FALSE)
     cat("\n")
@@ -437,15 +459,22 @@ getsummary <- function(dat, dc = getclass(dat)) {
 
   if (sum(isFct) > 0) {
     cat("Summarize factors:\n")
-    select(dat, which(isFct)) %>% summary(maxsum = 20) %>% print
+    select(dataset, which(isFct)) %>% summary(maxsum = 20) %>% print()
     cat("\n")
   }
 
   if (sum(isDate) > 0) {
     cat("Earliest dates:\n")
-    select(dat, which(isDate)) %>% summarise_all(funs(min)) %>% as.data.frame %>% print(., row.names = FALSE)
+    select(dataset, which(isDate)) %>%
+      summarise_all(funs(min)) %>%
+      as.data.frame(stringsAsFactors = FALSE) %>%
+      print(row.names = FALSE)
     cat("\nFinal dates:\n")
-    select(dat, which(isDate)) %>% summarise_all(funs(max)) %>% as.data.frame %>% print(., row.names = FALSE)
+    select(dataset, which(isDate)) %>%
+      summarise_all(funs(max)) %>%
+      as.data.frame(stringsAsFactors = FALSE) %>%
+      print(row.names = FALSE)
+
     cat("\n")
   }
 
@@ -454,86 +483,98 @@ getsummary <- function(dat, dc = getclass(dat)) {
     min_time <- function(x) sort(x) %>% head(1)
 
     cat("Earliest time:\n")
-    select(dat, which(isPeriod)) %>% summarise_all(funs(min_time)) %>% as.data.frame %>% print(., row.names = FALSE)
+    select(dataset, which(isPeriod)) %>%
+      summarise_all(funs(min_time)) %>%
+      as.data.frame(stringsAsFactors = FALSE) %>%
+      print(row.names = FALSE)
     cat("\nFinal time:\n")
-    select(dat, which(isPeriod)) %>% summarise_all(funs(max_time)) %>% as.data.frame %>% print(., row.names = FALSE)
+    select(dataset, which(isPeriod)) %>%
+      summarise_all(funs(max_time)) %>%
+      as.data.frame(stringsAsFactors = FALSE) %>%
+      print(row.names = FALSE)
     cat("\n")
   }
 
   if (sum(isChar) > 0) {
     ## finding unique elements can be slow for large files
-    if (nrow(dat) < 10^5) {
+    if (nrow(dataset) < 10^5) {
       cat("Summarize character variables (< 20 unique values shown):\n")
-      select(dat, which(isChar)) %>% lapply(unique) %>%
-        {for(i in names(.)) cat(i, paste0("(n_distinct ", length(.[[i]]), "): "), .[[i]][1:min(20,length(.[[i]]))], "\n")}
+      select(dataset, which(isChar)) %>% lapply(unique) %>% {
+        for (i in names(.)) {
+          cat(i, paste0("(n_distinct ", length(.[[i]]), "): "), .[[i]][1:min(20, length(.[[i]]))], "\n")
+        }
+      }
     } else {
       cat("Summarize character variables (< 20 values shown):\n")
-      select(dat, which(isChar)) %>%
-        {for(i in names(.)) cat(i, ":", .[[i]][1:min(20,length(.[[i]]))], "\n")}
+      select(dataset, which(isChar)) %>% {
+        for (i in names(.)) {
+          cat(i, ":", .[[i]][1:min(20, length(.[[i]]))], "\n")
+        }
+      }
     }
     cat("\n")
   }
   if (sum(isLogic) > 0) {
     cat("Summarize logical variables:\n")
-    select(dat, which(isLogic)) %>% summarise_all(funs(sum_rm, mean_rm, n_missing)) %>%
-      mutate_if_tmp(is.numeric, funs(round(., 4))) %>%
+    select(dataset, which(isLogic)) %>%
+      summarise_all(funs(sum, mean, n_missing), na.rm = TRUE) %>%
+      mutate_if(is.numeric, funs(round(., 4))) %>%
       matrix(ncol = 3) %>%
-      data.frame %>%
+      data.frame(stringsAsFactors = FALSE) %>%
       set_colnames(c("# TRUE", "% TRUE", "n_missing")) %>%
-      set_rownames(names(dat)[isLogic]) %>% 
-      print
+      set_rownames(names(dataset)[isLogic]) %>%
+      print()
     cat("\n")
   }
 }
 
 #' Create data.frame from a table
 #'
-#' @param dat Data.frame
+#' @param dataset Data.frame
 #' @param freq Column name with frequency information
 #'
 #' @examples
-#' data.frame(price = c("$200","$300"), sale = c(10, 2)) %>% table2data
+#' data.frame(price = c("$200","$300"), sale = c(10, 2)) %>% table2data()
 #'
 #' @export
-table2data <- function(dat, freq = tail(colnames(dat),1)) {
-  blowup <- function(i)
-    if (!is.na(dat[[freq]][i])) dat[rep(i, each = dat[[freq]][i]), ]
+table2data <- function(dataset, freq = tail(colnames(dataset), 1)) {
 
-  lapply(1:nrow(dat), blowup) %>%
-  bind_rows %>%
-  select_(paste0("-",freq)) %>%
-  mutate_all(funs(as.factor))
+  if (!is.numeric(dataset[[freq]])) stop("The frequency variable must be numeric", call = FALSE)
+  blowup <- function(i) {
+    if (!is.na(dataset[[freq]][i])) dataset[rep(i, each = dataset[[freq]][i]), ]
+  }
+
+  lapply(seq_len(nrow(dataset)), blowup) %>%
+    bind_rows() %>%
+    select_at(.vars = base::setdiff(colnames(dataset), freq)) %>%
+    mutate_all(funs(as.factor))
 }
 
 #' Generate list of levels and unique values
 #'
-#' @param dat A data.frame
+#' @param dataset A data.frame
 #' @param ... Unquoted variable names to evaluate
 #'
 #' @examples
 #' data.frame(a = c(rep("a",5),rep("b",5)), b = c(rep(1,5),6:10)) %>% level_list
 #' level_list(mtcars, mpg, cyl)
 #'
-#' @importFrom pryr named_dots
-#'
 #' @export
-level_list <- function(dat, ...) {
+level_list <- function(dataset, ...) {
   fl <- function(x) {
-    cx <- class(x)[1]
-    if (cx == "factor") {
+    if ("factor" %in% class(x)) {
       levels(x)
     } else {
       unique(x)
     }
   }
-  dots <- pryr::named_dots(...) %>% names
-  if (length(dots) > 0) {
-    lapply(select_(dat, .dots = dots), fl)
+  .vars <- sapply(substitute(list(...))[-1], deparse)
+  if (length(.vars) > 0) {
+    lapply(select_at(dataset, .vars = .vars), fl)
   } else {
-    lapply(dat, fl)
+    lapply(dataset, fl)
   }
 }
-
 
 #' Add ordered argument to lubridate::month
 #' @param x Input date vector
@@ -548,8 +589,11 @@ level_list <- function(dat, ...) {
 #' @export
 month <- function(x, label = FALSE, abbr = TRUE, ordered = FALSE) {
   x <- lubridate::month(x, label = label, abbr = abbr)
-  if (!ordered && label) x <- factor(x, ordered = FALSE)
-  x
+  if (!ordered && label) {
+    factor(x, ordered = FALSE)
+  } else {
+    x
+  }
 }
 
 #' Add ordered argument to lubridate::wday
@@ -560,24 +604,27 @@ month <- function(x, label = FALSE, abbr = TRUE, ordered = FALSE) {
 #'
 #' @importFrom lubridate wday
 #'
-#' @seealso See the \code{\link[lubridate]{wday}} function in the lubridate package for additional details
+#' @seealso See the \code{\link[lubridate:day]{lubridate::wday()}} function in the lubridate package for additional details
 #'
 #' @export
 wday <- function(x, label = FALSE, abbr = TRUE, ordered = FALSE) {
   x <- lubridate::wday(x, label = label, abbr = abbr)
-  if (!ordered && label) x <- factor(x, ordered = FALSE)
-  x
+  if (!ordered && label) {
+    factor(x, ordered = FALSE)
+  } else {
+    x
+  }
 }
 
-#' Remove/reorder levels 
-#' @details Keep only a specific set of levels in a factor. By removing levels the base for comparison in, e.g., regression analysis, becomes the first level. To relable the base use, for example, repl = 'other' 
+#' Remove/reorder levels
+#' @details Keep only a specific set of levels in a factor. By removing levels the base for comparison in, e.g., regression analysis, becomes the first level. To relabel the base use, for example, repl = 'other'
 #' @param x Character or Factor
 #' @param levs Set of levels to use
 #' @param repl String (or NA) used to replace missing levels
 #'
 #' @examples
-#' refactor(diamonds$cut, c("Premium","Ideal")) %>% head
-#' refactor(diamonds$cut, c("Premium","Ideal"), "Other") %>% head
+#' refactor(diamonds$cut, c("Premium","Ideal")) %>% head()
+#' refactor(diamonds$cut, c("Premium","Ideal"), "Other") %>% head()
 #'
 #' @export
 refactor <- function(x, levs = levels(x), repl = NA) {
@@ -589,12 +636,12 @@ refactor <- function(x, levs = levels(x), repl = NA) {
   } else {
     return(x)
   }
-  
+
   if (length(levs) > 0 && length(lv) > length(levs)) {
     if (!is_empty(repl)) levs <- unique(c(repl, levs))
-    x <- as_character(x) %>% ifelse (. %in% setdiff(lv, levs), repl, .)
+    x <- as_character(x) %>% ifelse(. %in% base::setdiff(lv, levs), repl, .)
   }
-  
+
   factor(x, levels = levs)
 }
 

@@ -4,10 +4,12 @@
 \alias{n_missing}
 \title{Number of missing values}
 \usage{
-n_missing(x)
+n_missing(x, ...)
 }
 \arguments{
 \item{x}{Input variable}
+
+\item{...}{Additional arguments}
 }
 \value{
 number of missing values
@@ -16,6 +18,6 @@ number of missing values
 Number of missing values
 }
 \examples{
-n_missing(c("a","b",NA))
+n_missing(c("a", "b", NA))
 
 }

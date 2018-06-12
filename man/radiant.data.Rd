@@ -12,8 +12,11 @@ radiant.data()
 \description{
 radiant.data
 
-Launch Radiant in the default browser
+Launch the radiant.data app in the default web browser
 }
-\details{
-See \url{https://radiant-rstats.github.io/docs} for documentation and tutorials
+\examples{
+\dontrun{
+radiant.data()
+radiant.data("viewer")
+}
 }

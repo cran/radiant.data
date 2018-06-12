@@ -3,29 +3,59 @@
 \docType{package}
 \name{radiant.data-deprecated}
 \alias{radiant.data-deprecated}
-\alias{mutate_each}
-\alias{dfprint}
-\alias{nrprint}
+\alias{mean_rm}
+\alias{median_rm}
+\alias{min_rm}
+\alias{max_rm}
+\alias{sd_rm}
+\alias{var_rm}
+\alias{sum_rm}
+\alias{getdata}
+\alias{filterdata}
+\alias{combinedata}
+\alias{viewdata}
+\alias{toFct}
+\alias{fixMS}
+\alias{getsummary}
+\alias{Search}
+\alias{formatnr}
+\alias{formatdf}
+\alias{rounddf}
+\alias{getclass}
+\alias{is_numeric}
 \alias{radiant.data-deprecated-package}
 \title{Deprecated function(s) in the radiant.data package}
 \usage{
-mutate_each(...)
+mean_rm(...)
 }
 \arguments{
 \item{...}{Parameters to be passed to the updated functions}
 }
 \description{
 These functions are provided for compatibility with previous versions of
-radiant. They will eventually be  removed.
+radiant but will be removed
 }
 \section{Details}{
 
-\tabular{rl}{
-  \code{mutate_each} is now a synonym for \code{\link{mutate_ext}}, \code{\link{mutate_at}}, or \code{\link{mutate_all}}\cr
-  \code{dfprint} is now a synonym for \code{\link{formatdf}}\cr
-  \code{nrprint} is now a synonym for \code{\link{formatnr}}\cr
-  \code{varp_rm} is now a synonym for \code{\link{varpop}}\cr
-  \code{sdp_rm} is now a synonym for \code{\link{sdpop}}\cr
+\itemize{
+  \item Replace \code{mean_rm} by \code{\link{mean}}
+  \item Replace \code{median_rm} by \code{\link{median}}
+  \item Replace \code{min_rm} by \code{\link{min}}
+  \item Replace \code{max_rm} by \code{\link{max}}
+  \item Replace \code{sd_rm} by \code{\link{sd}}
+  \item Replace \code{var_rm} by \code{\link{var}}
+  \item Replace \code{sum_rm} by \code{\link{sum}}
+  \item Replace \code{getdata} by \code{\link{get_data}}
+  \item Replace \code{filterdata} by \code{\link{filter_data}}
+  \item Replace \code{combinedata} by \code{\link{combine_data}}
+  \item Replace \code{viewdata} by \code{\link{view_data}}
+  \item Replace \code{toFct} by \code{\link{to_fct}}
+  \item Replace \code{fixMS} by \code{\link{fix_smart}}
+  \item Replace \code{rounddf} by \code{\link{round_df}}
+  \item Replace \code{formatdf} by \code{\link{format_df}}
+  \item Replace \code{formatnr} by \code{\link{format_nr}}
+  \item Replace \code{getclass} by \code{\link{get_class}}
+  \item Replace \code{is_numeric} by \code{\link{is_double}}
 }
 }
 

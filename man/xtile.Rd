@@ -2,9 +2,9 @@
 % Please edit documentation in R/transform.R
 \name{xtile}
 \alias{xtile}
-\title{Create a quintile (or decile) index}
+\title{Create quantiles}
 \usage{
-xtile(x, n, rev = FALSE)
+xtile(x, n = 5, rev = FALSE)
 }
 \arguments{
 \item{x}{Numeric variable}
@@ -14,10 +14,10 @@ xtile(x, n, rev = FALSE)
 \item{rev}{Reverse the order of the xtiles}
 }
 \description{
-Create a quintile (or decile) index
+Create quantiles
 }
 \details{
-Same as stata
+Approach used produces results most similar to Stata
 }
 \examples{
 xtile(1:10,5)

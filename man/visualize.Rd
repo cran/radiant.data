@@ -2,16 +2,18 @@
 % Please edit documentation in R/visualize.R
 \name{visualize}
 \alias{visualize}
-\title{Visualize data using ggplot2 \url{http://docs.ggplot2.org/current/}}
+\title{Visualize data using ggplot2 \url{http://ggplot2.tidyverse.org}}
 \usage{
 visualize(dataset, xvar, yvar = "", comby = FALSE, combx = FALSE,
-  type = "dist", facet_row = ".", facet_col = ".", color = "none",
-  fill = "none", size = "none", bins = 10, smooth = 1, fun = "mean",
-  check = "", axes = "", alpha = 0.5, ylim = "none", data_filter = "",
+  type = ifelse(is_empty(yvar), "dist", "scatter"), nrobs = -1,
+  facet_row = ".", facet_col = ".", color = "none", fill = "none",
+  size = "none", fillcol = "blue", linecol = "black",
+  pointcol = "black", bins = 10, smooth = 1, fun = "mean", check = "",
+  axes = "", alpha = 0.5, xlim = NULL, ylim = NULL, data_filter = "",
   shiny = FALSE, custom = FALSE)
 }
 \arguments{
-\item{dataset}{Dataset name (string). This can be a dataframe in the global environment or an element in an r_data list from Radiant}
+\item{dataset}{Data to plot (data.frame or tibble)}
 
 \item{xvar}{One or more variables to display along the X-axis of the plot}
 
@@ -23,6 +25,8 @@ visualize(dataset, xvar, yvar = "", comby = FALSE, combx = FALSE,
 
 \item{type}{Type of plot to create. One of Distribution ('dist'), Density ('density'), Scatter ('scatter'), Surface ('surface'), Line ('line'), Bar ('bar'), or Box-plot ('box')}
 
+\item{nrobs}{Number of data points to show in scatter plots (-1 for all)}
+
 \item{facet_row}{Create vertically arranged subplots for each level of the selected factor variable}
 
 \item{facet_col}{Create horizontally arranged subplots for each level of the selected factor variable}
@@ -32,6 +36,12 @@ visualize(dataset, xvar, yvar = "", comby = FALSE, combx = FALSE,
 \item{fill}{Display bar, distribution, and density plots by group, each with a different color. Also applied to surface plots to generate a 'heat map'}
 
 \item{size}{Numeric variable used to scale the size of scatter-plot points}
+
+\item{fillcol}{Color used for bars, boxes, etc. when no color or fill variable is specified}
+
+\item{linecol}{Color for lines when no color variable is specified}
+
+\item{pointcol}{Color for points when no color variable is specified}
 
 \item{bins}{Number of bins used for a histogram (1 - 50)}
 
@@ -45,39 +55,40 @@ visualize(dataset, xvar, yvar = "", comby = FALSE, combx = FALSE,
 
 \item{alpha}{Opacity for plot elements (0 to 1)}
 
-\item{ylim}{Set limit for y-axis}
+\item{xlim}{Set limit for y-axis (e.g., c(0, 1))}
+
+\item{ylim}{Set limit for y-axis (e.g., c(0, 1))}
 
 \item{data_filter}{Expression used to filter the dataset. This should be a string (e.g., "price > 10000")}
 
 \item{shiny}{Logical (TRUE, FALSE) to indicate if the function call originate inside a shiny app}
 
-\item{custom}{Logical (TRUE, FALSE) to indicate if ggplot object (or list of ggplot objects) should be returned. This opion can be used to customize plots (e.g., add a title, change x and y labels, etc.). See examples and \url{http://docs.ggplot2.org/} for options.}
+\item{custom}{Logical (TRUE, FALSE) to indicate if ggplot object (or list of ggplot objects) should be returned. This option can be used to customize plots (e.g., add a title, change x and y labels, etc.). See examples and \url{http://docs.ggplot2.org} for options.}
 }
 \value{
 Generated plots
 }
 \description{
-Visualize data using ggplot2 \url{http://docs.ggplot2.org/current/}
+Visualize data using ggplot2 \url{http://ggplot2.tidyverse.org}
 }
 \details{
-See \url{http://radiant-rstats.github.io/docs/data/visualize.html} for an example in Radiant
+See \url{https://radiant-rstats.github.io/docs/data/visualize.html} for an example in Radiant
 }
 \examples{
-visualize("diamonds", "price:x", type = "dist")
-visualize("diamonds", "carat:x", yvar = "price", type = "scatter")
-\dontrun{
-visualize(dataset = "diamonds", yvar = "price", xvar = c("cut","clarity"),
+visualize(diamonds, "price:cut", type = "dist", fillcol = "red")
+visualize(diamonds, "carat:cut", yvar = "price", type = "scatter",
+  pointcol = "blue", fun = c("mean", "median"), linecol = c("red","green"))
+visualize(diamonds, yvar = "price", xvar = c("cut","clarity"),
   type = "bar", fun = "median")
-visualize(dataset = "diamonds", yvar = "price", xvar = c("cut","clarity"),
+visualize(diamonds, yvar = "price", xvar = c("cut","clarity"),
   type = "line", fun = "max")
-visualize(dataset = "diamonds", yvar = "price", xvar = "carat", type = "scatter",
+visualize(diamonds, yvar = "price", xvar = "carat", type = "scatter",
           size = "table", custom = TRUE) + scale_size(range=c(1,10), guide = "none")
-visualize(dataset = "diamonds", yvar = "price", xvar = "carat", type = "scatter", custom = TRUE) +
+visualize(diamonds, yvar = "price", xvar = "carat", type = "scatter", custom = TRUE) +
   labs(title = "A scatterplot", x = "price in $")
-visualize(dataset = "diamonds", xvar = "price:carat", custom = TRUE) \%>\%
+visualize(diamonds, xvar = "price:carat", custom = TRUE) \%>\%
   gridExtra::grid.arrange(grobs = ., top = "Histograms", ncol = 2)
-visualize(dataset = "diamonds", xvar = "cut", yvar = "price", type = "bar",
+visualize(diamonds, xvar = "cut", yvar = "price", type = "bar",
   facet_row = "cut", fill = "cut")
-}
 
 }

@@ -2,7 +2,7 @@
 % Please edit documentation in R/pivotr.R
 \name{dtab.pivotr}
 \alias{dtab.pivotr}
-\title{Make a pivot tabel in DT}
+\title{Make an interactive pivot table}
 \usage{
 \method{dtab}{pivotr}(object, format = "none", perc = FALSE, dec = 3,
   searchCols = NULL, order = NULL, pageLength = NULL, ...)
@@ -10,35 +10,37 @@
 \arguments{
 \item{object}{Return value from \code{\link{pivotr}}}
 
-\item{format}{Show Color bar ("color_bar"),  Heat map ("heat"), or None ("none")}
+\item{format}{Show Color bar ("color_bar"), Heat map ("heat"), or None ("none")}
 
 \item{perc}{Display numbers as percentages (TRUE or FALSE)}
 
 \item{dec}{Number of decimals to show}
 
-\item{searchCols}{Column search and filter. Used to save and restore state}
+\item{searchCols}{Column search and filter}
 
-\item{order}{Column sorting. Used to save and restore state}
+\item{order}{Column sorting}
 
-\item{pageLength}{Page length. Used to save and restore state}
+\item{pageLength}{Page length}
 
 \item{...}{further arguments passed to or from other methods}
 }
 \description{
-Make a pivot tabel in DT
+Make an interactive pivot table
 }
 \details{
-See \url{http://radiant-rstats.github.io/docs/data/pivotr.html} for an example in Radiant
+See \url{https://radiant-rstats.github.io/docs/data/pivotr.html} for an example in Radiant
 }
 \examples{
-pivotr("diamonds", cvars = "cut") \%>\% dtab
-pivotr("diamonds", cvars = c("cut","clarity")) \%>\% dtab(format = "color_bar")
-ret <-  pivotr("diamonds", cvars = c("cut","clarity"), normalize = "total") \%>\%
-   dtab(format = "color_bar", perc = TRUE)
+\dontrun{
+pivotr(diamonds, cvars = "cut") \%>\% dtab()
+pivotr(diamonds, cvars = c("cut","clarity")) \%>\% dtab(format = "color_bar")
+pivotr(diamonds, cvars = c("cut","clarity"), normalize = "total") \%>\%
+  dtab(format = "color_bar", perc = TRUE)
+}
 
 }
 \seealso{
-\code{\link{pivotr}} to create the pivot-table using dplyr
+\code{\link{pivotr}} to create the pivot table
 
-\code{\link{summary.pivotr}} to print a plain text table
+\code{\link{summary.pivotr}} to print the table
 }

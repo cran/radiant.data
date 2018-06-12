@@ -4,7 +4,8 @@
 \alias{plot.pivotr}
 \title{Plot method for the pivotr function}
 \usage{
-\method{plot}{pivotr}(x, type = "dodge", perc = FALSE, flip = FALSE, ...)
+\method{plot}{pivotr}(x, type = "dodge", perc = FALSE, flip = FALSE,
+  fillcol = "blue", opacity = 0.5, ...)
 }
 \arguments{
 \item{x}{Return value from \code{\link{pivotr}}}
@@ -15,18 +16,22 @@
 
 \item{flip}{Flip the axes in a plot (FALSE or TRUE)}
 
+\item{fillcol}{Fill color for bar-plot when only one categorical variable has been selected (default is "blue")}
+
+\item{opacity}{Opacity for plot elements (0 to 1)}
+
 \item{...}{further arguments passed to or from other methods}
 }
 \description{
 Plot method for the pivotr function
 }
 \details{
-See \url{http://radiant-rstats.github.io/docs/data/pivotr} for an example in Radiant
+See \url{https://radiant-rstats.github.io/docs/data/pivotr} for an example in Radiant
 }
 \examples{
-pivotr("diamonds", cvars = "cut") \%>\% plot
-pivotr("diamonds", cvars = c("cut","clarity")) \%>\% plot
-pivotr("diamonds", cvars = c("cut","clarity","color")) \%>\% plot
+pivotr(diamonds, cvars = "cut") \%>\% plot()
+pivotr(diamonds, cvars = c("cut", "clarity")) \%>\% plot()
+pivotr(diamonds, cvars = c("cut", "clarity", "color")) \%>\% plot()
 
 }
 \seealso{
