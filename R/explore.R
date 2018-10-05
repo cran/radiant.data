@@ -90,16 +90,14 @@ explore <- function(
     }
 
     ## setup regular expression to split variable/function column appropriately
-    rex <- paste0("(.*?)_", glue('({glue::collapse(fun, "$|")}$)'))
+    rex <- paste0("(.*?)_", glue('({glue_collapse(fun, "$|")}$)'))
 
     ## useful answer and comments: http://stackoverflow.com/a/27880388/1974918
     tab <- gather(tab, "variable", "value", !! -(1:length(byvar))) %>%
-      # separate(variable, into = c("variable", "fun"), sep = "_", extra = "merge") %>%
       extract(variable, into = c("variable", "fun"), regex = rex) %>%
       mutate(fun = factor(fun, levels = !! fun), variable = factor(variable, levels = vars)) %>%
       spread("fun", "value")
   }
-
 
   ## flip the table if needed
   if (top != "fun") {
@@ -325,6 +323,7 @@ dtab.explore <- function(
     style = "bootstrap",
     options = list(
       dom = dom,
+      stateSave = TRUE, ## store state
       searchCols = searchCols,
       order = order,
       columnDefs = list(list(orderSequence = c("desc", "asc"), targets = "_all")),
@@ -334,7 +333,8 @@ dtab.explore <- function(
         if (is.null(pageLength)) 10 else pageLength
       },
       lengthMenu = list(c(5, 10, 25, 50, -1), c("5", "10", "25", "50", "All"))
-    )
+    ),
+    callback = DT::JS("$(window).unload(function() { table.state.clear(); })")
   ) %>%
     DT::formatStyle(., cn_cat, color = "white", backgroundColor = "grey")
 

@@ -34,7 +34,7 @@ launch <- function(package = "radiant.data", run = "viewer") {
     dctrl = if (getRversion() > "3.4.4") c("keepNA", "niceNames") else "keepNA"
   )
   on.exit(base::options(oop), add = TRUE)
-  if (is_empty(Sys.getenv("RSTUDIO"))) {
+  if (run == "browser" || run == "external") {
     message(sprintf("\nStarting %s in the default browser ...\n\nUse %s::%s_viewer() in Rstudio to open %s in the Rstudio viewer\nor %s::%s_window() in Rstudio to open %s in an Rstudio window", package, package, package, package, package, package, package))
     options(radiant.launch = "browser")
     run <- TRUE
@@ -682,8 +682,6 @@ find_dropbox <- function(account = 1) {
       fp <- file.path(Sys.getenv("LOCALAPPDATA"), "Dropbox/info.json") %>%
         gsub("\\\\", "/", .)
     }
-  } else if (os_type == "Darwin") {
-    fp <- "~/.dropbox/info.json"
   } else {
     fp <- "~/.dropbox/info.json"
   }
@@ -1188,6 +1186,17 @@ register <- function(new, org = "", descr = "", env) {
       }
     } else if (is.list(env[[new]])) {
       r_info[["dtree_list"]] <- c(new, r_info[["dtree_list"]]) %>% unique()
+    } else {
+      ## See https://shiny.rstudio.com/reference/shiny/latest/modalDialog.html
+      showModal(
+        modalDialog(
+          title = "Data not registered",
+          span("Only data.frames can be registered"),
+          footer = modalButton("OK"),
+          size = "s",
+          easyClose = TRUE
+        )
+      )
     }
   }
   invisible()
@@ -1198,16 +1207,14 @@ register <- function(new, org = "", descr = "", env) {
 #' @param path Path to be parsed
 #' @param chr Character to wrap around path for display
 #' @param pdir Project directory if available
+#' @param mess Print messages if Dropbox or Google Drive not found
 #' @importFrom tools file_ext
 #' @examples
 #' list.files(".", full.names = TRUE)[1] %>% parse_path()
 #' @export
-parse_path <- function(
-  path, chr = "",
-  pdir = getwd()
-) {
+parse_path <- function(path, chr = "", pdir = getwd(), mess = TRUE) {
 
-  if (is(path, "try-error") || is_empty(path)) {
+  if (inherits(path, "try-error") || is_empty(path)) {
     return(
       list(path = "", rpath = "", base = "", base_name = "", ext = "", content = "")
     )
@@ -1215,8 +1222,9 @@ parse_path <- function(
 
   if (is_empty(pdir)) {
     pdir <- try(rstudioapi::getActiveProject(), silent = TRUE)
-    if (is(pdir, "try-error") || is_empty(pdir)) {
-      pdir <- getwd()
+    if (inherits(pdir, "try-error") || is_empty(pdir)) {
+      # pdir <- getwd()
+      pdir <- radiant.data::find_home()
     }
   }
 
@@ -1224,8 +1232,9 @@ parse_path <- function(
   filename <- basename(path)
   fext <- tools::file_ext(filename)
 
-  ## objname is used as the name of the data.frame, make case insensitive
-  objname <- sub(glue('.{fext}$'), "", filename, ignore.case = TRUE)
+  ## objname is used as the name of the data.frame without any spaces, dashes, etc.
+  objname <- sub(glue('.{fext}$'), "", filename, ignore.case = TRUE) %>% fix_names()
+
   fext <- tolower(fext)
 
   if (!is_empty(pdir) && grepl(glue('^{pdir}'), path)) {
@@ -1235,7 +1244,7 @@ parse_path <- function(
     dbdir <- getOption("radiant.dropbox_dir", "")
     if (is_empty(dbdir)) {
       dbdir <- try(radiant.data::find_dropbox(), silent = TRUE)
-      if (is(dbdir, "try-error")) {
+      if (inherits(dbdir, "try-error") && mess) {
         message("Not able to determine the location of a local the Dropbox folder")
         dbdir <- ""
       }
@@ -1248,7 +1257,7 @@ parse_path <- function(
       gddir <- getOption("radiant.gdrive_dir", "")
       if (is_empty(gddir)) {
         gddir <- try(radiant.data::find_gdrive(), silent = TRUE)
-        if (is(gddir, "try-error")) {
+        if (inherits(gddir, "try-error") && mess) {
           message("Not able to determine the location of a local Google Drive folder")
           gddir <- ""
         }
@@ -1268,6 +1277,7 @@ parse_path <- function(
 #' Generate code to read a file
 #' @details Return code to read a file at the specified path. Will open a file browser if no path is provided
 #' @param path Path to file. If empty, a file browser will be opened
+#' @param pdir Project dir
 #' @param type Generate code for _Report > Rmd_ ("rmd") or _Report > R_ ("r")
 #' @param to Name to use for object. If empty, will use file name to derive an object name
 #' @param clipboard Return code to clipboard (not available on Linux)
@@ -1278,7 +1288,8 @@ parse_path <- function(
 #' }
 #' @importFrom rstudioapi selectFile isAvailable
 #' @export
-read_files <- function(path, type = "rmd", to = "", clipboard = TRUE, radiant = FALSE) {
+read_files <- function(
+  path, pdir = "", type = "rmd", to = "", clipboard = TRUE, radiant = FALSE) {
 
   ## if no path is provided, an interactive file browser will be opened
   if (missing(path) || is_empty(path)) {
@@ -1293,13 +1304,17 @@ read_files <- function(path, type = "rmd", to = "", clipboard = TRUE, radiant = 
       path <- try(choose_files(), silent = TRUE)
       pdir <- getwd()
     }
-    if (is(path, "try-error") || is_empty(path)) {
+    if (inherits(path, "try-error") || is_empty(path)) {
       return("")
     } else {
-      pp <- parse_path(path, pdir = pdir, chr = "\"")
+      pp <- parse_path(path, pdir = pdir, chr = "\"", mess = FALSE)
     }
   } else {
-    pp <- parse_path(path, chr = "\"")
+    if (is_empty(pdir)) {
+      pp <- parse_path(path, chr = "\"", mess = FALSE)
+    } else {
+      pp <- parse_path(path, pdir = pdir, chr = "\"", mess = FALSE)
+    }
   }
 
   if (to == "") {
@@ -1310,11 +1325,23 @@ read_files <- function(path, type = "rmd", to = "", clipboard = TRUE, radiant = 
   } else if (pp$fext == "rds") {
     cmd <- glue('{to} <- readr::read_rds({pp$rpath})\nregister("{pp$objname}")')
   } else if (pp$fext == "csv") {
-    cmd <- glue('{to} <- readr::read_csv({pp$rpath})\nregister("{pp$objname}")')
+    cmd <- glue('
+      {to} <- readr::read_csv({pp$rpath}) %>%
+        fix_names() %>%
+        to_fct()
+       register("{pp$objname}")')
   } else if (pp$fext == "tsv") {
-    cmd <- glue('{to} <- readr::read_tsv({pp$rpath})\nregister("{pp$objname}")')
+    cmd <- glue('
+      {to} <- readr::read_tsv({pp$rpath}) %>%
+        fix_names() %>%
+        to_fct()
+      register("{pp$objname}")')
   } else if (pp$fext %in% c("xls", "xlsx")) {
-    cmd <- glue('{to} <- readxl::read_excel({pp$rpath}, sheet = 1)\nregister("{pp$objname}")')
+    cmd <- glue('
+      {to} <- readxl::read_excel({pp$rpath}, sheet = 1) %>%
+        fix_names() %>%
+        to_fct()
+      register("{pp$objname}")')
   } else if (pp$fext == "feather") {
     ## waiting for https://github.com/wesm/feather/pull/326
     # cmd <- paste0(to, " <- feather::read_feather(", pp$rpath, ", columns = c())\nregister(\"", pp$objname, "\", desc = feather::feather_metadata(\"", pp$rpath, "\")$description)")
@@ -1345,11 +1372,13 @@ read_files <- function(path, type = "rmd", to = "", clipboard = TRUE, radiant = 
     }
   } else if (pp$fext %in% c("md", "rmd")) {
     if (type == "rmd")  {
-      cmd <- glue('\n```{r child = "<<pp$rpath>>"}\n```\n', .open = "<<", .close = ">>")
+      cmd <- glue('\n```{r child = <<pp$rpath>>}\n```\n', .open = "<<", .close = ">>")
       type <- ""
     } else {
       cmd <- glue('{to} <- readLines({pp$rpath})')
     }
+  } else if (pp$fext == "txt") {
+    cmd <- glue('{to} <- readLines({pp$rpath})')
   } else if (pp$fext %in% c("jpg", "jpeg", "png", "pdf")) {
     if (type == "rmd")  {
       cmd <- glue('\n\n![](`r {pp$rpath}`)\n\n')
@@ -1386,5 +1415,20 @@ read_files <- function(path, type = "rmd", to = "", clipboard = TRUE, radiant = 
     } else {
       cat(cmd)
     }
+  }
+}
+
+#' Find user directory
+#' @details Returns /Users/x and not /Users/x/Documents
+#' @export
+find_home <- function() {
+  os_type = Sys.info()["sysname"]
+  if (os_type == "Windows") {
+    normalizePath(
+      file.path(Sys.getenv("HOMEDRIVE"), Sys.getenv("HOMEPATH")),
+      winslash = "/"
+    )
+  } else {
+    Sys.getenv("HOME")
   }
 }

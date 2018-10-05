@@ -22,10 +22,12 @@ globalVariables(
 #' @importFrom readr read_delim read_csv write_csv read_rds write_rds locale problems
 #' @importFrom readxl read_excel
 #' @importFrom base64enc dataURI
-#' @importFrom methods is
 #' @importFrom stats as.formula chisq.test dbinom median na.omit quantile sd setNames var weighted.mean
 #' @importFrom utils combn head tail install.packages read.table write.table
 #' @importFrom import from
+#' @importFrom curl curl_download
+#' @importFrom writexl write_xlsx
+#' @importFrom summarytools dfSummary
 NULL
 
 #' Exporting glue from glue
@@ -36,20 +38,19 @@ NULL
 #' @export
 NULL
 
-#' Exporting collapse from glue as glue_collapse
-#' @details See \code{\link[glue]{collapse}} in the \code{glue} package for more details
-#' @name glue_collapse
-#' @rdname glue_collapse
-#' @param ... arguments passed to \code{glue::collapse}
-#' @export
-glue_collapse <- function(...) glue::collapse(...)
-NULL
-
 #' Exporting glue_data from glue
 #' @details See \code{\link[glue:glue]{glue::glue_data()}} in the \code{glue} package for more details
 #' @importFrom glue glue_data
 #' @name glue_data
 #' @rdname glue_data
+#' @export
+NULL
+
+#' Exporting glue_collapse from glue
+#' @details See \code{\link[glue:glue]{glue::glue_collapse()}} in the \code{glue} package for more details
+#' @importFrom glue glue_collapse
+#' @name glue_collapse
+#' @rdname glue_collapse
 #' @export
 NULL
 
