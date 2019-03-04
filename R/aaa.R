@@ -27,7 +27,8 @@ globalVariables(
 #' @importFrom import from
 #' @importFrom curl curl_download
 #' @importFrom writexl write_xlsx
-#' @importFrom summarytools dfSummary
+#' @importFrom shinyFiles getVolumes parseDirPath parseFilePaths parseSavePath shinyFileChoose shinyFileSave shinyFilesButton shinyFilesLink shinySaveButton shinySaveLink
+#'
 NULL
 
 #' Exporting glue from glue

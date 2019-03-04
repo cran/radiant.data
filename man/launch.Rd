@@ -4,12 +4,16 @@
 \alias{launch}
 \title{Launch radiant apps}
 \usage{
-launch(package = "radiant.data", run = "viewer")
+launch(package = "radiant.data", run = "viewer", state, ...)
 }
 \arguments{
 \item{package}{Radiant package to start. One of "radiant.data", "radiant.design", "radiant.basics", "radiant.model", "radiant.multivariate", or "radiant"}
 
 \item{run}{Run a radiant app in an external browser ("browser"), an Rstudio window ("window"), or in the Rstudio viewer ("viewer")}
+
+\item{state}{Path to statefile to load}
+
+\item{...}{additional arguments to pass to shiny::runApp (e.g, port = 8080)}
 }
 \description{
 Launch radiant apps

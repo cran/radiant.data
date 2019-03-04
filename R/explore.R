@@ -44,14 +44,14 @@ explore <- function(
   isFctNum <- "factor" == dc & names(dc) %in% base::setdiff(vars, byvar)
   if (sum(isFctNum)) {
     dataset[, isFctNum] <- select(dataset, which(isFctNum)) %>%
-      mutate_all(funs(as.integer(. == levels(.)[1])))
+      mutate_all(~ as.integer(. == levels(.)[1]))
     dc[isFctNum] <- "integer"
   }
 
   isLogNum <- "logical" == dc & names(dc) %in% base::setdiff(vars, byvar)
   if (sum(isLogNum)) {
     dataset[, isLogNum] <- select(dataset, which(isLogNum)) %>%
-      mutate_all(funs(as.integer))
+      mutate_all(as.integer)
     dc[isLogNum] <- "integer"
   }
 
@@ -76,7 +76,7 @@ explore <- function(
     ## convert categorical variables to factors if needed
     ## needed to deal with empty/missing values
     dataset[, byvar] <- select_at(dataset, .vars = byvar) %>%
-      mutate_all(funs(empty_level(.)))
+      mutate_all(~ empty_level(.))
 
     tab <- dataset %>%
       group_by_at(.vars = byvar) %>%
@@ -134,11 +134,11 @@ explore <- function(
     }
   }
 
-  tab <- ungroup(tab) %>% mutate_all(funs(check_int))
+  tab <- ungroup(tab) %>% mutate_all(check_int)
 
   ## convert to data.frame to maintain attributes
   tab <- as.data.frame(tab, stringsAsFactors = FALSE)
-  attr(tab, "nrow") <- nrow_tab
+  attr(tab, "radiant_nrow") <- nrow_tab
   if (!is.null(nr)) {
     ind <- if (nr > nrow(tab)) 1:nrow(tab) else 1:nr
     tab <- tab[ind, , drop = FALSE]
@@ -173,16 +173,16 @@ summary.explore <- function(object, dec = 3, ...) {
 
   cat("Explore\n")
   cat("Data        :", object$df_name, "\n")
-  if (object$data_filter %>% gsub("\\s", "", .) != "") {
+  if (!is_empty(object$data_filter)) {
     cat("Filter      :", gsub("\\n", "", object$data_filter), "\n")
   }
-  if (object$tabfilt != "") {
+  if (!is_empty(object$tabfilt)) {
     cat("Table filter:", object$tabfilt, "\n")
   }
-  if (object$tabsort[1] != "") {
+  if (!is_empty(object$tabsort[1])) {
     cat("Table sorted:", paste0(object$tabsort, collapse = ", "), "\n")
   }
-  nrw <- attr(object$tab, "nrow")
+  nrw <- attr(object$tab, "radiant_nrow")
   if (!is.null(nrw) && !is.null(object$nr) && object$nr < nrw) {
     cat(paste0("Rows shown  : ", object$nr, " (out of ", nrw, ")\n"))
   }
@@ -564,7 +564,7 @@ ln <- function(x, na.rm = TRUE) {
 #' @param na.rm If TRUE missing values are removed before calculation
 #' @return Logical. TRUE is there is variability
 #' @examples
-#' summarise_all(diamonds, funs(does_vary)) %>% as.logical
+#' summarise_all(diamonds, does_vary) %>% as.logical()
 #'
 #' @export
 does_vary <- function(x, na.rm = TRUE) {

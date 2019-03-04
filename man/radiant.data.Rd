@@ -6,7 +6,12 @@
 \alias{radiant.data-package}
 \title{radiant.data}
 \usage{
-radiant.data()
+radiant.data(state, ...)
+}
+\arguments{
+\item{state}{Path to statefile to load}
+
+\item{...}{additional arguments to pass to shiny::runApp (e.g, port = 8080)}
 }
 \description{
 radiant.data
@@ -16,6 +21,7 @@ Launch the radiant.data app in the default web browser
 \examples{
 \dontrun{
 radiant.data()
+radiant.data("https://github.com/radiant-rstats/docs/raw/gh-pages/examples/demo-dvd-rnd.state.rda")
 radiant.data("viewer")
 }
 }

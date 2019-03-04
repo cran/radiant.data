@@ -27,7 +27,7 @@
 #' @param base_size Base font size to use (default = 11)
 #' @param base_family Base font family to use (e.g., "Times" or "Helvetica")
 #' @param labs Labels to use for plots
-#' @param xlim Set limit for y-axis (e.g., c(0, 1))
+#' @param xlim Set limit for x-axis (e.g., c(0, 1))
 #' @param ylim Set limit for y-axis (e.g., c(0, 1))
 #' @param data_filter Expression used to filter the dataset. This should be a string (e.g., "price > 10000")
 #' @param shiny Logical (TRUE, FALSE) to indicate if the function call originate inside a shiny app
@@ -150,12 +150,12 @@ visualize <- function(
   isChar <- dc == "character"
   if (sum(isChar) > 0) {
     if (type == "density") {
-      dataset[, isChar] <- select(dataset, which(isChar)) %>% mutate_all(funs(as_numeric))
+      dataset[, isChar] <- select(dataset, which(isChar)) %>% mutate_all(as_numeric)
       if ("character" %in% get_class(select(dataset, which(isChar)))) {
         return("Character variable(s) were not converted to numeric for plotting.\nTo use these variables in a plot convert them to numeric\nvariables (or factors) in the Data > Transform tab")
       }
     } else {
-      dataset[, isChar] <- select(dataset, which(isChar)) %>% mutate_all(funs(as_factor))
+      dataset[, isChar] <- select(dataset, which(isChar)) %>% mutate_all(as_factor)
       nrlev <- sapply(dataset, function(x) if (is.factor(x)) length(levels(x)) else 0)
       if (max(nrlev) > 500) {
         return("Character variable(s) were not converted to factors for plotting.\nTo use these variable in a plot convert them to factors\n(or numeric variables) in the Data > Transform tab")
@@ -181,7 +181,7 @@ visualize <- function(
     if (sum(isFctY)) {
       levs <- sapply(dataset[, isFctY, drop = FALSE], function(x) levels(x)[1])
       dataset[, isFctY] <- select(dataset, which(isFctY)) %>%
-        mutate_all(funs(as.integer(. == levels(.)[1])))
+        mutate_all(~ as.integer(. == levels(.)[1]))
       dc[isFctY] <- "integer"
     }
   }
@@ -202,7 +202,7 @@ visualize <- function(
       return("'Log X' is only meaningful for X-variables of type integer or numeric")
     }
     to_log <- (dc[xvar] %in% c("integer", "numeric")) %>% xvar[.]
-    dataset[, to_log] <- select_at(dataset, .vars = to_log) %>% mutate_all(funs(log_trans))
+    dataset <- mutate_at(dataset, .vars = to_log, .funs = log_trans)
   }
 
   if ("log_y" %in% axes) {
@@ -210,7 +210,7 @@ visualize <- function(
       return("'Log Y' is only meaningful for Y-variables of type integer or numeric")
     }
     to_log <- (dc[yvar] %in% c("integer", "numeric")) %>% yvar[.]
-    dataset[, to_log] <- select_at(dataset, .vars = to_log) %>% mutate_all(funs(log_trans))
+    dataset <- mutate_at(dataset, .vars = to_log, .funs = log_trans)
   }
 
   ## combining Y-variables if needed
@@ -259,7 +259,7 @@ visualize <- function(
       plot_list[[i]] <- ggplot(dataset, aes_string(x = i))
       if ("density" %in% axes && !"factor" %in% dc[i]) {
         hist_par <- c(list(aes(y = ..density..)), hist_par)
-        plot_list[[i]] <- plot_list[[i]] + geom_density(color = linecol, size = .5)
+        plot_list[[i]] <- plot_list[[i]] + geom_density(adjust = smooth, color = linecol, size = .5)
       }
       if ("factor" %in% dc[i]) {
         plot_fun <- get("geom_bar")
@@ -476,7 +476,7 @@ visualize <- function(
           if ("flip" %in% axes) {
             tmp <- arrange_at(ungroup(tmp), .vars = j)
           } else {
-            tmp <- arrange_at(ungroup(tmp), .vars = j, .funs = funs(desc(.)))
+            tmp <- arrange_at(ungroup(tmp), .vars = j, .funs = desc)
           }
           tmp[[i]] %<>% factor(., levels = unique(.))
         }
@@ -561,14 +561,16 @@ visualize <- function(
       plot_list[[i]] <- plot_list[[i]] + aes_string(fill = fill)
   }
 
-  if (!is_empty(ylim, "none") && is.numeric(ylim) && length(ylim) == 2) {
+  if ((length(xlim) == 2 && is.numeric(xlim)) &&
+      (length(ylim) == 2 && is.numeric(ylim))) {
     for (i in 1:length(plot_list))
-      plot_list[[i]] <- plot_list[[i]] + coord_cartesian(ylim = ylim)
-  }
-
-  if (!is_empty(xlim, "none") && is.numeric(xlim) && length(xlim) == 2) {
+      plot_list[[i]] <- plot_list[[i]] + coord_cartesian(xlim = xlim, ylim = ylim)
+  } else if (length(xlim) == 2 && is.numeric(xlim)) {
     for (i in 1:length(plot_list))
       plot_list[[i]] <- plot_list[[i]] + coord_cartesian(xlim = xlim)
+  } else if (length(ylim) == 2 && is.numeric(ylim)) {
+    for (i in 1:length(plot_list))
+      plot_list[[i]] <- plot_list[[i]] + coord_cartesian(ylim = ylim)
   }
 
   if ("jitter" %in% check) {
@@ -580,22 +582,14 @@ visualize <- function(
   if ("line" %in% check) {
     for (i in 1:length(plot_list)) {
       plot_list[[i]] <- plot_list[[i]] +
-        sshhr(
-          geom_smooth(
-            method = "lm", alpha = 0.2, size = .75, linetype = "dashed"
-        )
-      )
+        sshhr(geom_smooth(method = "lm", alpha = 0.2, size = .75, linetype = "dashed"))
     }
   }
 
   if ("loess" %in% check) {
     for (i in 1:length(plot_list)) {
       plot_list[[i]] <- plot_list[[i]] +
-        sshhr(
-          geom_smooth(
-            span = smooth, method = "loess", alpha = 0.2, size = .75, linetype = "dotdash"
-          )
-        )
+        sshhr(geom_smooth(span = smooth, method = "loess", alpha = 0.2, size = .75, linetype = "dotdash"))
     }
   }
 
@@ -611,10 +605,10 @@ visualize <- function(
   if (length(labs) > 0) {
     if (is.list(labs[[1]])) {
       for (i in 1:length(labs)) {
-        plot_list[[i]] <- plot_list[[i]] + ggplot2::labs(labs[[i]])
+        plot_list[[i]] <- plot_list[[i]] + do.call(ggplot2::labs, labs[[i]])
       }
     } else {
-      plot_list[[1]] <- plot_list[[1]] + ggplot2::labs(labs)
+      plot_list[[1]] <- plot_list[[1]] + do.call(ggplot2::labs, labs)
     }
   }
 
@@ -636,3 +630,35 @@ visualize <- function(
     {if (shiny) . else print(.)}
 }
 
+#' Create a qscatter plot similar to Stata
+#'
+#' @param dataset Data to plot (data.frame or tibble)
+#' @param xvar Character indicating the variable to display along the X-axis of the plot
+#' @param yvar Character indicating the variable to display along the Y-axis of the plot
+#' @param lev Level in yvar to use if yvar is of type character of factor. If lev is empty then the first level is used
+#' @param fun Summary measure to apply to both the x and y variable
+#' @param bins Number of bins to use
+#'
+#' @examples
+#' qscatter(diamonds, "price", "carat")
+#' qscatter(titanic, "age", "survived")
+#'
+#' @export
+qscatter <- function(dataset, xvar, yvar, lev = "", fun = "mean", bins = 20) {
+  if (is.character(dataset[[yvar]])) {
+    dataset <- mutate_at(dataset, .vars = yvar, .funs = as.factor)
+  }
+  if (is.factor(dataset[[yvar]])) {
+    if (is_empty(lev)) lev <- levels(pull(dataset, !! yvar))[1]
+    dataset <- mutate_at(dataset, .vars = yvar, .funs = function(y) as.integer(y == lev))
+    lev <- paste0(" {", lev, "}")
+  } else {
+    lev <- ""
+  }
+  mutate_at(dataset, .vars = xvar, .funs = list(bins = ~ radiant.data::xtile(., bins))) %>%
+    group_by(bins) %>%
+    summarize_at(.vars = c(xvar, yvar), .funs = fun) %>%
+    ggplot(aes_string(x = xvar, y = yvar)) +
+    geom_point() +
+    labs(y = paste0(yvar, " (", fun, lev, ")"))
+}
