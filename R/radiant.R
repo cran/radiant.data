@@ -436,7 +436,7 @@ is_double <- function(x) {
 
 #' Create a vector of interaction terms for linear and logistic regression
 #'
-#' @param vars Variableslabels to use
+#' @param vars Labels to use
 #' @param nway 2-way (2) or 3-way (3) interaction labels to create
 #' @param sep Separator to use between variable names (e.g., :)
 #'
@@ -860,7 +860,7 @@ which.pmin <- function(...) unname(apply(cbind(...), 1, which.min))
 #' @param ... Numeric vectors of the same length
 #' @param fun Function to apply
 #' @param na.rm	 a logical indicating whether missing values should be removed.
-#' @return A vector of ‘parallel’ summaries of the argument vectors.
+#' @return A vector of 'parallel' summaries of the argument vectors.
 #' @seealso See also \code{\link{pmin}} and \code{\link{pmax}}
 #' @examples
 #' pfun(1:10, fun = mean)
