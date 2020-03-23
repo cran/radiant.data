@@ -4,9 +4,18 @@
 \alias{explore}
 \title{Explore and summarize data}
 \usage{
-explore(dataset, vars = "", byvar = "", fun = c("mean", "sd"),
-  top = "fun", tabfilt = "", tabsort = "", nr = NULL,
-  data_filter = "")
+explore(
+  dataset,
+  vars = "",
+  byvar = "",
+  fun = c("mean", "sd"),
+  top = "fun",
+  tabfilt = "",
+  tabsort = "",
+  nr = Inf,
+  data_filter = "",
+  envir = parent.frame()
+)
 }
 \arguments{
 \item{dataset}{Dataset to explore}
@@ -26,6 +35,8 @@ explore(dataset, vars = "", byvar = "", fun = c("mean", "sd"),
 \item{nr}{Number of rows to display}
 
 \item{data_filter}{Expression used to filter the dataset before creating the table (e.g., "price > 10000")}
+
+\item{envir}{Environment to extract data from}
 }
 \value{
 A list of all variables defined in the function as an object of class explore

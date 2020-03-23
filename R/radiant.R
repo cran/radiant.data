@@ -36,7 +36,10 @@ launch <- function(package = "radiant.data", run = "viewer", state, ...) {
     dctrl = if (getRversion() > "3.4.4") c("keepNA", "niceNames") else "keepNA"
   )
   on.exit(base::options(oop), add = TRUE)
-  if (run == "browser" || run == "external") {
+  if (run == FALSE) {
+    message(sprintf("\nStarting %s at the url shown below ...\nClick on the link or copy-and-paste it into\nyour browser's url bar to start", package))
+    options(radiant.launch = "browser")
+  } else if (run == "browser" || run == "external") {
     message(sprintf("\nStarting %s in the default browser ...\n\nUse %s::%s_viewer() in Rstudio to open %s in the Rstudio viewer\nor %s::%s_window() in Rstudio to open %s in an Rstudio window", package, package, package, package, package, package, package))
     options(radiant.launch = "browser")
     run <- TRUE
@@ -57,8 +60,6 @@ launch <- function(package = "radiant.data", run = "viewer", state, ...) {
     # run <- shiny::dialogViewer("Radiant", 1200, 800)
     ## using eval(parse(text = ...)) to avoid foreign function call warnings
     run <- eval(parse(text = "function(url) {invisible(.Call('rs_shinyviewer', url, getwd(), 3))}"))
-  } else if (run == FALSE) {
-    options(radiant.launch = "browser")
   } else {
     message(sprintf("\nStarting %s in the default browser ...\n\nUse %s::%s_viewer() in Rstudio to open %s in the Rstudio viewer or %s::%s_window() in Rstudio to open %s in an Rstudio window", package, package, package, package, package, package, package))
     options(radiant.launch = "browser")
@@ -82,6 +83,7 @@ launch <- function(package = "radiant.data", run = "viewer", state, ...) {
 
 #' Launch the radiant.data app in the default web browser
 #'
+#' @description Launch the radiant.data app in the default web browser
 #' @param state Path to statefile to load
 #' @param ... additional arguments to pass to shiny::runApp (e.g, port = 8080)
 #'
@@ -117,6 +119,18 @@ radiant.data_window <- function(state, ...) launch(package = "radiant.data", run
 #' }
 #' @export
 radiant.data_viewer <- function(state, ...) launch(package = "radiant.data", run = "viewer", state, ...)
+
+#' Start radiant.data app but do not open a browser
+#'
+#' @param state Path to statefile to load
+#' @param ... additional arguments to pass to shiny::runApp (e.g, port = 8080)
+#'
+#' @examples
+#' \dontrun{
+#' radiant.data_url()
+#' }
+#' @export
+radiant.data_url <- function(state, ...) launch(package = "radiant.data", run = FALSE, state, ...)
 
 #' Install webshot and phantomjs
 #' @export
@@ -209,6 +223,21 @@ sshh <- function(...) {
 #' @export
 sshhr <- function(...) suppressWarnings(suppressMessages(...))
 
+#' Find user directory
+#' @details Returns /Users/x and not /Users/x/Documents
+#' @export
+find_home <- function() {
+  os_type = Sys.info()["sysname"]
+  if (os_type == "Windows") {
+    normalizePath(
+      file.path(Sys.getenv("HOMEDRIVE"), Sys.getenv("HOMEPATH")),
+      winslash = "/"
+    )
+  } else {
+    Sys.getenv("HOME")
+  }
+}
+
 #' Select variables and filter data
 #'
 #' @details Function is used in radiant to select variables and filter data based on user input in string form
@@ -217,7 +246,10 @@ sshhr <- function(...) suppressWarnings(suppressMessages(...))
 #' @param filt Filter to apply to the specified dataset
 #' @param rows Select rows in the specified dataset
 #' @param na.rm Remove rows with missing values (default is TRUE)
+#' @param envir Environment to extract data from
+#'
 #' @return Data.frame with specified columns and rows
+#'
 #' @examples
 #' get_data(mtcars, vars = "cyl:vs", filt = "mpg > 25")
 #' get_data(mtcars , vars = c("mpg", "cyl"), rows = 1:10)
@@ -225,7 +257,8 @@ sshhr <- function(...) suppressWarnings(suppressMessages(...))
 #' @export
 get_data <- function(
   dataset, vars = "", filt = "",
-  rows = NULL, na.rm = TRUE
+  rows = NULL, na.rm = TRUE,
+  envir = c()
 ) {
 
   filt <- gsub("\\n", "", filt) %>%
@@ -233,8 +266,8 @@ get_data <- function(
 
   {if (is.data.frame(dataset)) {
     dataset
-  } else if (exists("r_environment") && exists("r_data") && !is.null(r_data[[dataset]])) {
-    r_data[[dataset]]
+  } else if (is.environment(envir) && !is.null(envir[[dataset]])) {
+    envir[[dataset]]
   } else {
     paste0("Dataset ", dataset, " is not available. Please load the dataset") %>%
       stop(call. = FALSE)
@@ -544,21 +577,6 @@ copy_all <- function(.from) {
   invisible(NULL)
 }
 
-#' Print/draw method for grobs produced by gridExtra
-#'
-#' @details Print method for grobs created using grid.arrange
-#'
-#' @param x a gtable object
-#' @param ... further arguments passed to or from other methods
-#'
-#' @return A plot
-#'
-#' @export
-print.gtable <- function(x, ...) {
-  if (is.ggplot(x)) x <- ggplotGrob(x)
-  grid::grid.draw(x)
-}
-
 #' Labels for confidence intervals
 #'
 #' @param alt Type of hypothesis ("two.sided","less","greater")
@@ -836,7 +854,7 @@ find_project <- function(mess = TRUE) {
 #' @details Determine the index of the maximum of the input vectors per row. Extension of \code{which.max}
 #' @param ... Numeric or character vectors of the same length
 #' @return Vector of rankings
-#' @seealso See also \code{\link{which.max}} and  \code{\link{which.pmin}}
+#' @seealso See also \code{\link{which.max}} and \code{\link{which.pmin}}
 #' @examples
 #' which.pmax(1:10, 10:1)
 #' which.pmax(2, 10:1)
@@ -986,7 +1004,9 @@ store.character <- function(dataset = NULL, object, ...) {
 }
 
 store_character_popup <- function(mess) {
-  if (exists("r_environment")) {
+  if (is.null(shiny::getDefaultReactiveDomain())) {
+    stop(mess, call. = FALSE)
+  } else {
     ## See https://shiny.rstudio.com/reference/shiny/latest/modalDialog.html
     showModal(
       modalDialog(
@@ -997,8 +1017,6 @@ store_character_popup <- function(mess) {
         easyClose = TRUE
       )
     )
-  } else {
-    stop(mess, call. = FALSE)
   }
 }
 
@@ -1076,12 +1094,15 @@ render <- function(object, ...) UseMethod("render", object)
 #' Method to render DT tables
 #'
 #' @param object DT table
+#' @param shiny Check if function is called from a shiny application
 #' @param ... Additional arguments
 #'
+#' @importFrom shiny getDefaultReactiveDomain
+#'
 #' @export
-render.datatables <- function(object, ...) {
+render.datatables <- function(object, shiny = shiny::getDefaultReactiveDomain(), ...) {
   ## hack for rmarkdown from Report > Rmd and Report > R
-  if (exists("r_environment") && !getOption("radiant.rmarkdown", FALSE)) {
+  if (!is.null(shiny) && !getOption("radiant.rmarkdown", FALSE)) {
     DT::renderDataTable(object)
   } else {
     object
@@ -1126,14 +1147,16 @@ subplot <- function(..., margin = 0.04) {
 #' Method to render plotly plots
 #'
 #' @param object plotly object
+#' @param shiny Check if function is called from a shiny application
 #' @param ... Additional arguments
 #'
+#' @importFrom shiny getDefaultReactiveDomain
 #' @importFrom plotly renderPlotly
 #'
 #' @export
-render.plotly <- function(object, ...) {
+render.plotly <- function(object, shiny = shiny::getDefaultReactiveDomain(), ...) {
   ## hack for rmarkdown from Report > Rmd and Report > R
-  if (exists("r_environment") && !getOption("radiant.rmarkdown", FALSE)) {
+  if (!is.null(shiny) && !getOption("radiant.rmarkdown", FALSE)) {
     ## avoid the ID-not-used-by-Shiny message
     object$elementId <- NULL
 
@@ -1179,16 +1202,17 @@ render.shiny.render.function <- function(object, ...) object
 #' @details Show dataset description, if available, in html form in Rstudio viewer or the default browser. The description should be in markdown format, attached to a data.frame as an attribute with the name "description"
 #'
 #' @param dataset Dataset with "description" attribute
+#' @param envir Environment to extract data from
 #'
 #' @importFrom utils browseURL str
 #' @importFrom knitr knit2html
 #'
 #' @export
-describe <- function(dataset) {
+describe <- function(dataset, envir = parent.frame()) {
 
   dataset <- if (is.character(dataset)) {
     message(paste0("Using describe(\"", dataset, "\") is deprecated.\nUse desribe(", dataset, ") instead"))
-    get_data(dataset)
+    get_data(dataset, envir = envir)
   } else {
     dataset
   }
@@ -1198,14 +1222,12 @@ describe <- function(dataset) {
     return(str(dataset))
   }
 
-  owd <- setwd(tempdir())
-  on.exit(setwd(owd))
-
+  tf <- file.path(tempdir(), "index.html")
   ## generate html and open in the Rstudio viewer or in the default browser
-  knitr::knit2html(text = description) %>% cat(file = "index.html")
+  cat(knitr::knit2html(text = description), file = tf)
   ## based on https://support.rstudio.com/hc/en-us/articles/202133558-Extending-RStudio-with-the-Viewer-Pane
   viewer <- getOption("viewer", default = browseURL)
-  viewer("index.html")
+  viewer(tf)
 }
 
 # #' Workaround to add description using feather::write_feather
@@ -1259,45 +1281,45 @@ fix_smart <- function(text, all = FALSE) {
 #' @param new String containing the name of the data.frame to register
 #' @param org Name of the original data.frame if a (working) copy is being made
 #' @param descr Data description in markdown format
-#' @param env Environment to assign data to
+#' @param shiny Check if function is called from a shiny application
+#' @param envir Environment to assign data to
 #'
-#' @importFrom shiny makeReactiveBinding
+#' @importFrom shiny makeReactiveBinding getDefaultReactiveDomain
 #'
 #' @export
-register <- function(new, org = "", descr = "", env) {
-  if (exists("r_environment")) {
-    if (missing(env) && exists("r_data")) env <- r_data
-    if (is.environment(env)) {
+register <- function(new, org = "", descr = "", shiny = shiny::getDefaultReactiveDomain(), envir = r_data) {
+  if (!is.null(shiny)) {
+    if (is.environment(envir)) {
       if (length(new) > 1) {
         message("Only one object can be registered at a time")
         return(invisible())
-      } else if (!is_string(new) || is.null(env[[new]])) {
+      } else if (!is_string(new) || is.null(envir[[new]])) {
         message("No dataset with that name (", new, ") has been loaded in Radiant")
         return(invisible())
       }
     } else {
-      message("Unable to assign data (", new, ") to ", env, "as this does not seem to be an environment")
+      message("Unable to assign data (", new, ") to ", envir, "as this does not seem to be an environment")
       return(invisible())
     }
 
-    if (is.data.frame(env[[new]])) {
+    if (is.data.frame(envir[[new]])) {
       ## use data description from the original data.frame if available
       if (!is_empty(descr)) {
         r_info[[paste0(new, "_descr")]] <- descr
       } else if (is_empty(r_info[[paste0(new, "_descr")]]) && !is_empty(org)) {
         r_info[[paste0(new, "_descr")]] <- r_info[[paste0(org, "_descr")]]
       } else {
-        r_info[[paste0(new, "_descr")]] <- attr(env[[new]], "description")
+        r_info[[paste0(new, "_descr")]] <- attr(envir[[new]], "description")
       }
 
       ## add description to the data.frame
-      attr(env[[new]], "description") <- r_info[[paste0(new, "_descr")]]
+      attr(envir[[new]], "description") <- r_info[[paste0(new, "_descr")]]
 
       r_info[["datasetlist"]] <- c(new, r_info[["datasetlist"]]) %>% unique()
-      if (exists(new, envir = env) && !bindingIsActive(as.symbol(new), env = env)) {
-        shiny::makeReactiveBinding(new, env = env)
+      if (exists(new, envir = envir) && !bindingIsActive(as.symbol(new), env = envir)) {
+        shiny::makeReactiveBinding(new, env = envir)
       }
-    } else if (is.list(env[[new]])) {
+    } else if (is.list(envir[[new]])) {
       r_info[["dtree_list"]] <- c(new, r_info[["dtree_list"]]) %>% unique()
     } else {
       ## See https://shiny.rstudio.com/reference/shiny/latest/modalDialog.html
@@ -1317,23 +1339,28 @@ register <- function(new, org = "", descr = "", env) {
 
 #' Deregister a data.frame or list in Radiant
 #'
-#' @param dataset String containing the name of the data.frame to register
+#' @param dataset String containing the name of the data.frame to deregister
+#' @param shiny Check if function is called from a shiny application
+#' @param envir Environment to remove data from
+#' @param info Reactive list with information about available data in radiant
+#'
+#' @importFrom shiny getDefaultReactiveDomain
 #'
 #' @export
-deregister <- function(dataset) {
-  if (exists("r_environment")) {
-    datasets <- r_info[["datasetlist"]]
+deregister <- function(dataset, shiny = shiny::getDefaultReactiveDomain(), envir = r_data, info = r_info) {
+  if (is.null(shiny)) {
+    message("The deregister function should only be used in the radiant web application")
+  } else {
+    datasets <- info[["datasetlist"]]
     if (!dataset %in% datasets) {
       message("No dataset with that name (", dataset, ") has been loaded in Radiant")
     } else {
-      r_info[[paste0(dataset, "_descr")]] <- NULL
-      r_info[[paste0(dataset, "_lcmd")]] <- NULL
-      r_info[[paste0(dataset, "_scmd")]] <- NULL
-      r_info[["datasetlist"]] <- setdiff(datasets, dataset)
-      rm(list = dataset, envir = r_data)
+      info[[paste0(dataset, "_descr")]] <- NULL
+      info[[paste0(dataset, "_lcmd")]] <- NULL
+      info[[paste0(dataset, "_scmd")]] <- NULL
+      info[["datasetlist"]] <- setdiff(datasets, dataset)
+      rm(list = dataset, envir = envir)
     }
-  } else {
-    rm(list = dataset, envir = parent.frame())
   }
 }
 
@@ -1463,7 +1490,7 @@ read_files <- function(
       {to} <- readr::read_csv({pp$rpath}) %>%
         fix_names() %>%
         to_fct()
-       register("{pp$objname}")')
+      register("{pp$objname}")')
   } else if (pp$fext == "tsv") {
     cmd <- glue('
       {to} <- readr::read_tsv({pp$rpath}) %>%
@@ -1555,17 +1582,3 @@ read_files <- function(
   }
 }
 
-#' Find user directory
-#' @details Returns /Users/x and not /Users/x/Documents
-#' @export
-find_home <- function() {
-  os_type = Sys.info()["sysname"]
-  if (os_type == "Windows") {
-    normalizePath(
-      file.path(Sys.getenv("HOMEDRIVE"), Sys.getenv("HOMEPATH")),
-      winslash = "/"
-    )
-  } else {
-    Sys.getenv("HOME")
-  }
-}

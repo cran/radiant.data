@@ -4,7 +4,9 @@
 \name{superheroes}
 \alias{superheroes}
 \title{Super heroes}
-\format{A data frame with 7 rows and 4 variables}
+\format{
+A data frame with 7 rows and 4 variables
+}
 \usage{
 data(superheroes)
 }
@@ -12,6 +14,6 @@ data(superheroes)
 Super heroes
 }
 \details{
-List of super heroes from \url{http://stat545-ubc.github.io/bit001_dplyr-cheatsheet.html}. The dataset is used to illustrate data merging / joining. Description provided in attr(superheroes,"description")
+List of super heroes from \url{https://stat545.com/join-cheatsheet.html}. The dataset is used to illustrate data merging / joining. Description provided in attr(superheroes,"description")
 }
 \keyword{datasets}

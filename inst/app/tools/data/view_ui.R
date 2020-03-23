@@ -32,7 +32,7 @@ output$ui_View <- renderUI({
         min = 0
       ),
       tags$table(
-        tags$td(textInput("view_name", "Store filtered data as:", paste0(input$dataset, "_wrk"))),
+        tags$td(textInput("view_name", "Store filtered data as:", "", placeholder = "Provide data name")),
         tags$td(actionButton("view_store", "Store", icon = icon("plus"), class = "btn-success"), style = "padding-top:30px;")
       )
     ),
@@ -132,7 +132,8 @@ output$dataviewer <- DT::renderDataTable({
         },
         lengthMenu = list(c(5, 10, 25, 50, -1), c("5", "10", "25", "50", "All"))
       ),
-      callback = DT::JS("$(window).unload(function() { table.state.clear(); })")
+      ## https://github.com/rstudio/DT/issues/146#issuecomment-534319155
+      callback = DT::JS('$(window).on("unload", function() { table.state.clear(); })')
     ) %>%
       {if (sum(isDbl) > 0) DT::formatRound(., names(isDbl)[isDbl], dec) else .} %>%
       {if (sum(isInt) > 0) DT::formatRound(., names(isInt)[isInt], 0) else .}
@@ -150,7 +151,7 @@ observeEvent(input$view_store, {
 
   r_data[[dataset]] <- get_data(
     input$dataset, vars = input$view_vars, filt = data_filter,
-    rows = input$dataviewer_rows_all, na.rm = FALSE
+    rows = input$dataviewer_rows_all, na.rm = FALSE, envir = r_data
   )
   register(dataset)
   updateSelectInput(session = session, inputId = "dataset", selected = input$dataset)
@@ -181,7 +182,8 @@ dl_view_tab <- function(file) {
     vars = input$view_vars,
     filt = data_filter,
     rows = input$dataviewer_rows_all,
-    na.rm = FALSE
+    na.rm = FALSE,
+    envir = r_data
   ) %>% write.csv(file, row.names = FALSE)
 }
 
@@ -194,9 +196,14 @@ download_handler(id = "dl_view_tab", fun = dl_view_tab, fn = function() paste0(i
 .viewcmd <- function(mess = "") {
   ## get the state of the dt table
   ts <- dt_state("dataviewer", vars = input$view_vars)
-  dataset <- fix_names(input$view_name)
-  if (input$view_name != dataset) {
-    updateTextInput(session, inputId = "view_name", value = dataset)
+
+  if (is_empty(input$view_name)) {
+    dataset <- NULL
+  } else {
+    dataset <- fix_names(input$view_name)
+    if (input$view_name != dataset) {
+      updateTextInput(session, inputId = "view_name", value = dataset)
+    }
   }
 
   cmd <- ""
@@ -216,17 +223,25 @@ download_handler(id = "dl_view_tab", fun = dl_view_tab, fn = function() paste0(i
     vars <- paste0(vars, collapse = ", ")
   }
 
-  xcmd <- paste0("# dtab(", dataset)
+  if (is_empty(dataset)) {
+    xcmd <- paste0("  dtab(")
+  } else {
+    xcmd <- paste0("# dtab(", dataset, ", ")
+  }
   if (!is_empty(input$view_dec, 3)) {
-    xcmd <- paste0(xcmd, ", dec = ", input$view_dec)
+    xcmd <- paste0(xcmd, "dec = ", input$view_dec, ", ")
   }
   if (!is_empty(r_state$dataviewer_state$length, 10)) {
-    xcmd <- paste0(xcmd, ", pageLength = ", r_state$dataviewer_state$length)
+    xcmd <- paste0(xcmd, "pageLength = ", r_state$dataviewer_state$length, ", ")
   }
-  xcmd <- paste0(xcmd, ", nr = 100) %>% render()")
+  xcmd <- paste0(xcmd, "nr = 100) %>% render()")
 
   ## create the command to filter and sort the data
-  cmd <- paste0(cmd, "## filter and sort the dataset\n", dataset, " <- ", input$dataset)
+  if (is_empty(dataset)) {
+    cmd <- paste0(cmd, "## filter and sort the dataset\n", input$dataset)
+  } else {
+    cmd <- paste0(cmd, "## filter and sort the dataset\n", dataset, " <- ", input$dataset)
+  }
   if (input$show_filter && !is_empty(input$data_filter)) {
     cmd <- paste0(cmd, " %>%\n  filter(", input$data_filter, ")")
   }
@@ -241,8 +256,16 @@ download_handler(id = "dl_view_tab", fun = dl_view_tab, fn = function() paste0(i
   }
   ## moved `select` to the end so filters can use variables
   ## not selected for the final dataset
-  paste0(cmd, " %>%\n  select(", vars, ")") %>%
-    paste0("\nregister(\"", dataset, "\", \"", input$dataset, "\")\n", xcmd)
+  if (is_empty(dataset)) {
+    paste0(cmd, " %>%\n  select(", vars, ") %>%") %>%
+      paste0("\n", xcmd)
+  } else {
+    ret <- paste0(cmd, " %>%\n  select(", vars, ")")
+    if (dataset != input$dataset) {
+      ret <- paste0(ret, "\nregister(\"", dataset, "\", \"", input$dataset, "\")\n", xcmd)
+    }
+    ret
+  }
 }
 
 observeEvent(input$view_report, {

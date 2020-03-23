@@ -13,11 +13,17 @@ center <- function(x, na.rm = TRUE)
 #' Standardize
 #' @param x Input variable
 #' @param na.rm If TRUE missing values are removed before calculation
-#' @return If x is a numeric variable return center(x) / mean(x)
+#' @return If x is a numeric variable return (x - mean(x)) / sd(x)
 #' @export
 standardize <- function(x, na.rm = TRUE) {
   if (is.numeric(x)) {
-    center(x, na.rm = na.rm) / sd(x, na.rm = na.rm)
+    x_sd <- sd(x, na.rm = na.rm)
+    x <- x - mean(x, na.rm = na.rm)
+    if (isTRUE(x_sd > 0)) {
+      x / x_sd
+    } else {
+      x
+    }
   } else {
     x
   }
@@ -197,6 +203,8 @@ as_hm <- function(x) {
 #' as_integer(as.factor(5:10))
 #' as.integer(as.factor(5:10))
 #' as_integer(c("a","b"))
+#' as_integer(c("0","1"))
+#' as_integer(as.factor(c("0","1")))
 #'
 #' @export
 as_integer <- function(x) {
@@ -221,6 +229,7 @@ as_integer <- function(x) {
 #' as.numeric(as.factor(5:10))
 #' as_numeric(c("a","b"))
 #' as_numeric(c("3","4"))
+#' as_numeric(as.factor(c("3","4")))
 #'
 #' @export
 as_numeric <- function(x) {
@@ -283,20 +292,42 @@ as_distance <- function(
 #' Generate a variable used to selected a training sample
 #' @param n Number (or fraction) of observations to label as training
 #' @param nr Number of rows in the dataset
+#' @param blocks A vector to use for blocking or a data.frame from which to construct a blocking vector
 #' @param seed Random seed
+#'
 #' @return 0/1 variables for filtering
+#'
+#' @importFrom randomizr complete_ra block_ra
+#'
 #' @examples
 #' make_train(.5, 10)
+#' make_train(.5, 10) %>% table()
+#' make_train(100, 1000) %>% table()
+#' make_train(.15, blocks = mtcars$vs) %>% table() / nrow(mtcars)
+#' make_train(.10, blocks = iris$Species) %>% table() / nrow(iris)
+#' make_train(.5, blocks = iris[, c("Petal.Width", "Species")]) %>% table()
 #'
 #' @export
-make_train <- function(n = .7, nr = 100, seed = 1234) {
-  seed %>% gsub("[^0-9]", "", .) %>%
-    {if (!is_empty(.)) set.seed(seed)}
-  if (n < 1) n <- round(n * nr) %>% max(1)
-  ind <- seq_len(nr)
-  training <- rep_len(0L, nr)
-  training[sample(ind, n)] <- 1L
-  training
+make_train <- function(n = .7, nr = NULL, blocks = NULL, seed = 1234) {
+  seed <- gsub("[^0-9]", "", seed)
+  if (!is_empty(seed)) set.seed(seed)
+
+  if (is_empty(nr) && is_empty(blocks)) {
+    stop("Please provided the number of rows in the data (nr) or a vector with blocking information (blocks)")
+  } else if (is.data.frame(blocks)) {
+    blocks <- do.call(paste, c(blocks, sep = "-"))
+    nr <- length(blocks)
+  } else if (is.vector(blocks)) {
+    nr <- length(blocks)
+  }
+
+  if (n > 1) n <- n / nr
+
+  if (length(blocks) > 0) {
+    randomizr::block_ra(blocks, prob = n)
+  } else {
+    randomizr::complete_ra(N = nr, prob = n)
+  }
 }
 
 #' Add transformed variables to a data frame with the option to include a custom variable name extension
@@ -336,32 +367,37 @@ mutate_ext <- function(.tbl, .funs, ..., .ext = "", .vars = c()) {
   }
 }
 
-#' Create quantiles
-#'
-#' @details Approach used produces results most similar to Stata
+#' Split a numeric variable into a number of bins and return a vector of bin numbers
 #'
 #' @param x Numeric variable
 #' @param n number of bins to create
-#' @param rev Reverse the order of the xtiles
+#' @param rev Reverse the order of the bin numbers
+#' @param type An integer between 1 and 9 to select one of the quantile algorithms described in the help for the stats::quantile function
+#'
+#' @seealso See \link[stats]{quantile} for a description of the different algorithm types
 #'
 #' @examples
-#' xtile(1:10,5)
-#' xtile(1:10,5, rev = TRUE)
+#' xtile(1:10, 5)
+#' xtile(1:10, 5, rev = TRUE)
+#' xtile(c(rep(1, 6), 7:10), 5)
 #'
 #' @export
-xtile <- function(x, n = 5, rev = FALSE) {
+xtile <- function(x, n = 5, rev = FALSE, type = 7) {
   if (!is.numeric(x)) {
     stop(paste0("The variable to bin must be of type {numeric} but is of type {", class(x)[1], "}"), call. = FALSE)
   } else if (n < 1) {
     stop(paste0("The number of bins must be > 1 but is ", n), call. = FALSE)
   } else if (length(x) < n) {
     stop(paste("The number of bins to create is larger than\nthe number of data points. Perhaps you grouped the data before\ncalling the xtile function and the number of observations per\ngroup is too small"), call. = FALSE)
+  } else if (type < 1 || type > 9) {
+    stop(paste("The value for type is", type, "but must be between 1 and 9"), call. = FALSE)
   }
 
-  breaks <- quantile(x, prob = seq(0, 1, length = n + 1), type = 2)
+  breaks <- quantile(x, prob = seq(0, 1, length = n + 1), na.rm = TRUE, type = type)
   if (length(breaks) < 2) stop(paste("Insufficient variation in x to construct", n, "breaks"), call. = FALSE)
-  .bincode(x, breaks, include.lowest = TRUE) %>%
-    {if (rev) as.integer((n + 1) - .) else .}
+  bins <- .bincode(x, breaks, include.lowest = TRUE)
+
+  if (rev) as.integer((n + 1) - bins) else bins
 }
 
 #' Show all rows with duplicated values (not just the first or last)
@@ -394,7 +430,7 @@ show_duplicated <- function(.tbl, ...) {
 
 #' Weighted standard deviation
 #'
-#' @details Calculated a weighted standard deviation
+#' @details Calculate weighted standard deviation
 #'
 #' @param x Numeric vector
 #' @param wt Numeric vector of weights
@@ -403,8 +439,9 @@ show_duplicated <- function(.tbl, ...) {
 #' @export
 weighted.sd <- function(x, wt, na.rm = TRUE) {
   if (na.rm) {
-    x <- na.omit(x)
-    wt <- na.omit(wt)
+    ind <- is.na(x) | is.na(wt)
+    x <- x[!ind]
+    wt <- wt[!ind]
   }
   wt <- wt / sum(wt)
   wm <- weighted.mean(x, wt)
@@ -665,13 +702,11 @@ wday <- function(x, label = FALSE, abbr = TRUE, ordered = FALSE) {
 #'
 #' @export
 refactor <- function(x, levs = levels(x), repl = NA) {
-  if (is.character(x)) {
-    lv <- unique(x)
-    if (length(levs) == 0) levs <- lv
-  } else if (is.factor(x)) {
+  if (is.factor(x)) {
     lv <- levels(x)
   } else {
-    return(x)
+    lv <- unique(x)
+    if (length(levs) == 0) levs <- lv
   }
 
   if (length(levs) > 0 && length(lv) > length(levs)) {
@@ -682,7 +717,48 @@ refactor <- function(x, levs = levels(x), repl = NA) {
   factor(x, levels = levs)
 }
 
+#' Convert a string of numbers into a vector
+#'
+#' @param x A string of numbers that may include fractions
+#'
+#' @importFrom MASS fractions
+#'
+#' @examples
+#' make_vec("1 2 4")
+#' make_vec("1/2 2/3 4/5")
+#' make_vec(0.1)
+#' @export
+make_vec <- function(x) {
+  if (is_empty(x)) {
+    return(NULL)
+  } else if (!is.character(x)) {
+    return(x)
+  }
+
+  any_frac <- FALSE
+  check_frac <- function(x) {
+    if (length(x) == 2) {
+      any_frac <<- TRUE
+      as.numeric(x[1]) / as.numeric(x[2])
+    } else {
+      as.numeric(x)
+    }
+  }
+  x <- strsplit(x, "(\\s*,\\s*|\\s*;\\s*|\\s+)") %>%
+    unlist() %>%
+    strsplit("\\s*/\\s*") %>%
+    sapply(check_frac)
+
+  if (any_frac) {
+    MASS::fractions(x)
+  } else {
+    x
+  }
+}
+
 ###############################
 ## function below not exported
 ###############################
 .recode. <- function(x, cmd) car::Recode(x, cmd)
+
+

@@ -11,6 +11,7 @@
 #' @param tabsort Expression used to sort the table (e.g., "desc(Total)")
 #' @param nr Number of rows to display
 #' @param data_filter Expression used to filter the dataset before creating the table (e.g., "price > 10000")
+#' @param envir Environment to extract data from
 #'
 #' @return A list of all variables defined in the function as an object of class explore
 #'
@@ -24,54 +25,79 @@
 #' @export
 explore <- function(
   dataset, vars = "", byvar = "", fun = c("mean", "sd"),
-  top = "fun", tabfilt = "", tabsort = "", nr = NULL,
-  data_filter = ""
+  top = "fun", tabfilt = "", tabsort = "", nr = Inf,
+  data_filter = "", envir = parent.frame()
 ) {
 
   tvars <- vars
   if (!is_empty(byvar)) tvars <- unique(c(tvars, byvar))
 
-
   df_name <- if (is_string(dataset)) dataset else deparse(substitute(dataset))
-  dataset <- get_data(dataset, tvars, filt = data_filter, na.rm = FALSE)
+  dataset <- get_data(dataset, tvars, filt = data_filter, na.rm = FALSE, envir = envir)
   rm(tvars)
 
   ## in case : was used
   vars <- base::setdiff(colnames(dataset), byvar)
 
-  ## converting factors for integer (1st level)
-  ## see also R/visualize.R
+  ## converting data as needed for summarization
   dc <- get_class(dataset)
-  isFctNum <- "factor" == dc & names(dc) %in% base::setdiff(vars, byvar)
-  if (sum(isFctNum)) {
-    dataset[, isFctNum] <- select(dataset, which(isFctNum)) %>%
-      mutate_all(~ as.integer(. == levels(.)[1]))
-    dc[isFctNum] <- "integer"
+  fixer <- function(x, fun = as_integer) {
+    if (is.character(x) || is.Date(x)) {
+      x <- rep(NA, length(x))
+    } else if (is.factor(x)) {
+      x_num <- sshhr(as.integer(as.character(x)))
+      if (length(na.omit(x_num)) == 0) {
+        x <- fun(x)
+      } else {
+        x <- x_num
+      }
+    }
+    x
   }
+  fixer_first <- function(x) {
+    x <- fixer(x, function(x) as_integer(x == levels(x)[1]))
+  }
+  mean <- function(x, na.rm = TRUE) sshhr(base::mean(fixer_first(x), na.rm = na.rm))
+  sum <- function(x, na.rm = TRUE) sshhr(base::sum(fixer_first(x), na.rm = na.rm))
+  var <- function(x, na.rm = TRUE) sshhr(stats::var(fixer_first(x), na.rm = na.rm))
+  sd <- function(x, na.rm = TRUE) sshhr(stats::sd(fixer_first(x), na.rm = na.rm))
+  se <- function(x, na.rm = TRUE) sshhr(radiant.data::se(fixer_first(x), na.rm = na.rm))
+  me <- function(x, na.rm = TRUE) sshhr(radiant.data::me(fixer_first(x), na.rm = na.rm))
+  cv <- function(x, na.rm = TRUE) sshhr(radiant.data::cv(fixer_first(x), na.rm = na.rm))
+  prop <- function(x, na.rm = TRUE) sshhr(radiant.data::prop(fixer_first(x), na.rm = na.rm))
+  varprop <- function(x, na.rm = TRUE) sshhr(radiant.data::varprop(fixer_first(x), na.rm = na.rm))
+  sdprop <- function(x, na.rm = TRUE) sshhr(radiant.data::sdprop(fixer_first(x), na.rm = na.rm))
+  seprop <- function(x, na.rm = TRUE) sshhr(radiant.data::seprop(fixer_first(x), na.rm = na.rm))
+  meprop <- function(x, na.rm = TRUE) sshhr(radiant.data::meprop(fixer_first(x), na.rm = na.rm))
+  varpop <- function(x, na.rm = TRUE) sshhr(radiant.data::varpop(fixer_first(x), na.rm = na.rm))
+  sdpop <- function(x, na.rm = TRUE) sshhr(radiant.data::sdpop(fixer_first(x), na.rm = na.rm))
+
+  median <- function(x, na.rm = TRUE) sshhr(stats::median(fixer(x), na.rm = na.rm))
+  min <- function(x, na.rm = TRUE) sshhr(base::min(fixer(x), na.rm = na.rm))
+  max <- function(x, na.rm = TRUE) sshhr(base::max(fixer(x), na.rm = na.rm))
+  p01 <- function(x, na.rm = TRUE) sshhr(radiant.data::p01(fixer(x), na.rm = na.rm))
+  p025 <- function(x, na.rm = TRUE) sshhr(radiant.data::p025(fixer(x), na.rm = na.rm))
+  p05 <- function(x, na.rm = TRUE) sshhr(radiant.data::p05(fixer(x), na.rm = na.rm))
+  p10 <- function(x, na.rm = TRUE) sshhr(radiant.data::p10(fixer(x), na.rm = na.rm))
+  p25 <- function(x, na.rm = TRUE) sshhr(radiant.data::p25(fixer(x), na.rm = na.rm))
+  p75 <- function(x, na.rm = TRUE) sshhr(radiant.data::p75(fixer(x), na.rm = na.rm))
+  p90 <- function(x, na.rm = TRUE) sshhr(radiant.data::p90(fixer(x), na.rm = na.rm))
+  p95 <- function(x, na.rm = TRUE) sshhr(radiant.data::p95(fixer(x), na.rm = na.rm))
+  p975 <- function(x, na.rm = TRUE) sshhr(radiant.data::p975(fixer(x), na.rm = na.rm))
+  p99 <- function(x, na.rm = TRUE) sshhr(radiant.data::p99(fixer(x), na.rm = na.rm))
+  skew <- function(x, na.rm = TRUE) sshhr(radiant.data::skew(fixer(x), na.rm = na.rm))
+  kurtosi <- function(x, na.rm = TRUE) sshhr(radiant.data::kurtosi(fixer(x), na.rm = na.rm))
 
   isLogNum <- "logical" == dc & names(dc) %in% base::setdiff(vars, byvar)
-  if (sum(isLogNum)) {
+  if (sum(isLogNum) > 0) {
     dataset[, isLogNum] <- select(dataset, which(isLogNum)) %>%
       mutate_all(as.integer)
     dc[isLogNum] <- "integer"
   }
 
   if (is_empty(byvar)) {
-    isNum <- dc %>%
-      {which("numeric" == . | "integer" == . | "ts" == .)}
-    tab <- dataset %>%
-      select_at(.vars = names(isNum)) %>%
-      gather("variable", "value", factor_key = TRUE) %>%
-      group_by_at("variable") %>%
-      summarise_all(fun, na.rm = TRUE)
-
-    ## order by the variable names selected
-    tab <- tab[match(vars, tab[[1]]), ]
-
-    if (ncol(tab) == 2) {
-      colnames(tab) <- c("variable", fun)
-    }
-    rm(isNum)
+    byvar <- c()
+    tab <- summarise_all(dataset, fun, na.rm = TRUE)
   } else {
 
     ## convert categorical variables to factors if needed
@@ -82,23 +108,24 @@ explore <- function(
     tab <- dataset %>%
       group_by_at(.vars = byvar) %>%
       summarise_all(fun, na.rm = TRUE)
-
-    ## adjust column names
-    if (length(vars) == 1 || length(fun) == 1) {
-      rng <- (length(byvar) + 1):ncol(tab)
-      colnames(tab)[rng] <- paste0(vars, "_", fun)
-      rm(rng)
-    }
-
-    ## setup regular expression to split variable/function column appropriately
-    rex <- paste0("(.*?)_", glue('({glue_collapse(fun, "$|")}$)'))
-
-    ## useful answer and comments: http://stackoverflow.com/a/27880388/1974918
-    tab <- gather(tab, "variable", "value", !! -(1:length(byvar))) %>%
-      extract(variable, into = c("variable", "fun"), regex = rex) %>%
-      mutate(fun = factor(fun, levels = !! fun), variable = factor(variable, levels = vars)) %>%
-      spread("fun", "value")
   }
+
+  ## adjust column names
+  if (length(vars) == 1 || length(fun) == 1) {
+    rng <- (length(byvar) + 1):ncol(tab)
+    colnames(tab)[rng] <- paste0(vars, "_", fun)
+    rm(rng)
+  }
+
+  ## setup regular expression to split variable/function column appropriately
+  rex <- paste0("(.*?)_", glue('({glue_collapse(fun, "$|")}$)'))
+
+  ## useful answer and comments: http://stackoverflow.com/a/27880388/1974918
+  tab <- gather(tab, "variable", "value", !! -(seq_along(byvar))) %>%
+    extract(variable, into = c("variable", "fun"), regex = rex) %>%
+    mutate(fun = factor(fun, levels = !! fun), variable = factor(variable, levels = vars)) %>%
+    # mutate(variable = paste0(variable, " {", dc[variable], "}")) %>%
+    spread("fun", "value")
 
   ## flip the table if needed
   if (top != "fun") {
@@ -140,16 +167,24 @@ explore <- function(
   ## convert to data.frame to maintain attributes
   tab <- as.data.frame(tab, stringsAsFactors = FALSE)
   attr(tab, "radiant_nrow") <- nrow_tab
-  if (!is.null(nr)) {
+  if (!isTRUE(is.infinite(nr))) {
     ind <- if (nr > nrow(tab)) 1:nrow(tab) else 1:nr
     tab <- tab[ind, , drop = FALSE]
     rm(ind)
   }
 
-  ## objects no longer needed
-  rm(dataset, check_int, isLogNum, isFctNum, dc, nrow_tab)
-
-  as.list(environment()) %>% add_class("explore")
+  list(
+    tab = tab,
+    df_name = df_name,
+    vars = vars,
+    byvar = byvar,
+    fun = fun,
+    top = top,
+    tabfilt = tabfilt,
+    tabsort = tabsort,
+    nr = nr,
+    data_filter = data_filter
+  ) %>% add_class("explore")
 }
 
 #' Summary method for the explore function
@@ -183,9 +218,9 @@ summary.explore <- function(object, dec = 3, ...) {
   if (!is_empty(object$tabsort[1])) {
     cat("Table sorted:", paste0(object$tabsort, collapse = ", "), "\n")
   }
-  nrw <- attr(object$tab, "radiant_nrow")
-  if (!is.null(nrw) && !is.null(object$nr) && object$nr < nrw) {
-    cat(paste0("Rows shown  : ", object$nr, " (out of ", nrw, ")\n"))
+  nr <- attr(object$tab, "radiant_nrow")
+  if (!isTRUE(is.infinite(nr)) && !isTRUE(is.infinite(object$nr)) && object$nr < nr) {
+    cat(paste0("Rows shown  : ", object$nr, " (out of ", nr, ")\n"))
   }
   if (!is_empty(object$byvar[1])) {
     cat("Grouped by  :", object$byvar, "\n")
@@ -335,7 +370,8 @@ dtab.explore <- function(
       },
       lengthMenu = list(c(5, 10, 25, 50, -1), c("5", "10", "25", "50", "All"))
     ),
-    callback = DT::JS("$(window).unload(function() { table.state.clear(); })")
+    ## https://github.com/rstudio/DT/issues/146#issuecomment-534319155
+    callback = DT::JS('$(window).on("unload", function() { table.state.clear(); })')
   ) %>%
     DT::formatStyle(., cn_cat, color = "white", backgroundColor = "grey")
 
@@ -389,47 +425,38 @@ n_missing <- function(x, ...) sum(is.na(x))
 p01 <- function(x, na.rm = TRUE) quantile(x, .01, na.rm = na.rm)
 
 #' @rdname percentiles
-#' @inheritParams p01
 #' @export
 p025 <- function(x, na.rm = TRUE) quantile(x, .025, na.rm = na.rm)
 
 #' @rdname percentiles
-#' @inheritParams p01
 #' @export
 p05 <- function(x, na.rm = TRUE) quantile(x, .05, na.rm = na.rm)
 
 #' @rdname percentiles
-#' @inheritParams p01
 #' @export
 p10 <- function(x, na.rm = TRUE) quantile(x, .1, na.rm = na.rm)
 
 #' @rdname percentiles
-#' @inheritParams p01
 #' @export
 p25 <- function(x, na.rm = TRUE) quantile(x, .25, na.rm = na.rm)
 
 #' @rdname percentiles
-#' @inheritParams p01
 #' @export
 p75 <- function(x, na.rm = TRUE) quantile(x, .75, na.rm = na.rm)
 
 #' @rdname percentiles
-#' @inheritParams p01
 #' @export
 p90 <- function(x, na.rm = TRUE) quantile(x, .90, na.rm = na.rm)
 
 #' @rdname percentiles
-#' @inheritParams p01
 #' @export
 p95 <- function(x, na.rm = TRUE) quantile(x, .95, na.rm = na.rm)
 
 #' @rdname percentiles
-#' @inheritParams p01
 #' @export
 p975 <- function(x, na.rm = TRUE) quantile(x, .975, na.rm = na.rm)
 
 #' @rdname percentiles
-#' @inheritParams p01
 #' @export
 p99 <- function(x, na.rm = TRUE) quantile(x, .99, na.rm = na.rm)
 
@@ -462,6 +489,23 @@ cv <- function(x, na.rm = TRUE) {
 se <- function(x, na.rm = TRUE) {
   if (na.rm) x <- na.omit(x)
   sd(x) / sqrt(length(x))
+}
+
+#' Margin of error
+#' @param x Input variable
+#' @param conf_lev Confidence level. The default is 0.95
+#' @param na.rm If TRUE missing values are removed before calculation
+#' @return Margin of error
+#'
+#' @importFrom stats qt
+#'
+#' @examples
+#' me(rnorm(100))
+#'
+#' @export
+me <- function(x, conf_lev = 0.95, na.rm = TRUE) {
+  if (na.rm) x <- na.omit(x)
+  se(x) * qt(conf_lev / 2 + .5, length(x) - 1, lower.tail = TRUE)
 }
 
 #' Calculate proportion
@@ -522,6 +566,23 @@ sdprop <- function(x, na.rm = TRUE) sqrt(varprop(x, na.rm = na.rm))
 seprop <- function(x, na.rm = TRUE) {
   if (na.rm) x <- na.omit(x)
   sqrt(varprop(x, na.rm = FALSE) / length(x))
+}
+
+#' Margin of error for proportion
+#' @param x Input variable
+#' @param conf_lev Confidence level. The default is 0.95
+#' @param na.rm If TRUE missing values are removed before calculation
+#' @return Margin of error
+#'
+#' @importFrom stats qnorm
+#'
+#' @examples
+#' meprop(c(rep(1L, 10), rep(0L, 10)))
+#'
+#' @export
+meprop <- function(x, conf_lev = 0.95, na.rm = TRUE) {
+  if (na.rm) x <- na.omit(x)
+  seprop(x) * qnorm(conf_lev / 2 + .5, lower.tail = TRUE)
 }
 
 #' Variance for the population
@@ -597,4 +658,23 @@ empty_level <- function(x) {
     x[is.na(x)] <- "NA"
   }
   x
+}
+
+#' Calculate the mode (modal value) and return a label
+#' 
+#' @details From https://www.tutorialspoint.com/r/r_mean_median_mode.htm
+#' @param x A vector 
+#' @param na.rm If TRUE missing values are removed before calculation
+#' 
+#' @examples
+#' modal(c("a", "b", "b"))
+#' modal(c(1:10, 5))
+#' modal(as.factor(c(letters, "b")))
+#' modal(runif(100) > 0.5)
+#'
+#' @export
+modal <- function(x, na.rm = TRUE) {
+  if (na.rm) x <- na.omit(x)
+  unv <- unique(x)
+  unv[which.max(tabulate(match(x, unv)))]
 }

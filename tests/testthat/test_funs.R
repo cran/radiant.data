@@ -1,5 +1,5 @@
-# library(radiant.data)
-# library(testthat)
+library(radiant.data)
+library(testthat)
 
 context("R deparse")
 
@@ -38,8 +38,11 @@ test_that("sshhr", {
 })
 
 test_that("get_data", {
-  get_data(mtcars, "mpg:disp", filt = "mpg > 20", rows = 1:5) %>%
-    expect_equal(., mtcars[mtcars$mpg > 20, c("mpg", "cyl", "disp")][1:5, 1:3] %>% set_rownames(1:5))
+  res1 <- get_data(mtcars, "mpg:disp", filt = "mpg > 20", rows = 1:5)
+  rownames(res1) <- seq_len(nrow(res1))
+  res2 <- mtcars[mtcars$mpg > 20, c("mpg", "cyl", "disp")][1:5, 1:3]
+  rownames(res2) <- seq_len(nrow(res2))
+  expect_equal(res1, res2)
 })
 
 test_that("get_class", {
@@ -87,6 +90,7 @@ context("Explore")
 test_that("explore 8 x 2", {
   result <- explore(diamonds, "price:x")
   expect_equal(colnames(result$tab), c("variable", "mean", "sd"))
+  # dput(result)
   expect_equal(result, structure(list(tab = structure(list(variable = structure(1:8,
     .Label = c("price",  "carat", "clarity", "cut", "color", "depth", "table", "x"), class = "factor"),
     mean = c(3907.186, 0.794283333333333, 0.0133333333333333,
@@ -96,39 +100,35 @@ test_that("explore 8 x 2", {
     0.333401571319236, 1.44602785395269, 2.24110219949434, 1.12405453974662
     )), class = "data.frame", row.names = c(NA, -8L), radiant_nrow = 8L),
     df_name = "diamonds", vars = c("price", "carat", "clarity",
-    "cut", "color", "depth", "table", "x"), byvar = "", fun = c("mean",
-    "sd"), top = "fun", tabfilt = "", tabsort = "", nr = NULL,
+    "cut", "color", "depth", "table", "x"), byvar = NULL, fun = c("mean",
+    "sd"), top = "fun", tabfilt = "", tabsort = "", nr = Inf,
     data_filter = ""), class = c("explore", "list"
   )))
 })
 
 test_that("explore 1 x 2", {
   result <- explore(diamonds, "price")
-  # summary(result)
   expect_equal(result, structure(list(tab = structure(list(variable = structure(1L, .Label = "price", class = "factor"),
     mean = 3907.186, sd = 3956.91540005997), class = "data.frame", row.names = c(NA,
-    -1L), radiant_nrow = 1L), df_name = "diamonds", vars = "price", byvar = "",
+    -1L), radiant_nrow = 1L), df_name = "diamonds", vars = "price", byvar = NULL,
     fun = c("mean", "sd"), top = "fun", tabfilt = "", tabsort = "",
-    nr = NULL, data_filter = ""), class = c("explore",
+    nr = Inf, data_filter = ""), class = c("explore",
     "list")
   ))
 })
 
 test_that("explore 1 x 1", {
   result <- explore(diamonds, "price", fun = "n_obs")
-  # summary(result)
   expect_equal(colnames(result$tab), c("variable", "n_obs"))
 })
 
 test_that("explore 1 x 1 x 1", {
   result <- explore(diamonds, "price", byvar = "color", fun = "n_obs")
-  # summary(result)
   expect_equal(colnames(result$tab), c("color", "variable", "n_obs"))
 })
 
 test_that("explore 1 x 1 x 2", {
   result <- explore(diamonds, "price", byvar = c("color", "cut"), fun = "n_obs")
-  # summary(result)
   expect_equal(colnames(result$tab), c("color", "cut", "variable", "n_obs"))
   expect_equal(result$tab[1,], structure(list(color = structure(1L, .Label = c("D", "E", "F",
     "G", "H", "I", "J"), class = "factor"), cut = structure(1L, .Label = c("Fair",
@@ -143,11 +143,10 @@ test_that("explore 2 x 2 x 2", {
   expect_equal(colnames(result$tab), c("color", "cut", "variable", "n_obs", "mean"))
 })
 
-
 test_that("transform ts", {
 
-  library(testthat)
-  library(dplyr)
+  # library(testthat)
+  # library(dplyr)
 
   input = list(
     tr_ts_start_year = 1971,

@@ -11,6 +11,7 @@
 #' @param tabsort Expression used to sort the table (e.g., "desc(Total)")
 #' @param nr Number of rows to display
 #' @param data_filter Expression used to filter the dataset before creating the table (e.g., "price > 10000")
+#' @param envir Environment to extract data from
 #'
 #' @examples
 #' pivotr(diamonds, cvars = "cut") %>% str()
@@ -23,15 +24,15 @@
 #' @export
 pivotr <- function(
   dataset, cvars = "", nvar = "None", fun = "mean",
-  normalize = "None", tabfilt = "", tabsort = "", nr = NULL,
-  data_filter = ""
+  normalize = "None", tabfilt = "", tabsort = "", nr = Inf,
+  data_filter = "", envir = parent.frame()
 ) {
 
   vars <- if (nvar == "None") cvars else c(cvars, nvar)
   fill <- if (nvar == "None") 0L else NA
 
   df_name <- if (is_string(dataset)) dataset else deparse(substitute(dataset))
-  dataset <- get_data(dataset, vars, filt = data_filter, na.rm = FALSE)
+  dataset <- get_data(dataset, vars, filt = data_filter, na.rm = FALSE, envir = envir)
 
   ## in case : was used for cvars
   cvars <- base::setdiff(colnames(dataset), nvar)
@@ -39,11 +40,29 @@ pivotr <- function(
   if (nvar == "None") {
     nvar <- "n_obs"
   } else {
-    ## converting factors for integer (1st level)
-    ## see also R/visualize.R
-    if ("factor" %in% class(dataset[[nvar]]) && fun[1] != "n_distinct") {
-      dataset[[nvar]] %<>% {as.integer(. == levels(.)[1])}
-    } else if ("logical" %in% class(dataset[[nvar]])) {
+    fixer <- function(x, fun = as_integer) {
+      if (is.character(x) || is.Date(x)) {
+        x <- rep(NA, length(x))
+      } else if (is.factor(x)) {
+        x_num <- sshhr(as.integer(as.character(x)))
+        if (length(na.omit(x_num)) == 0) {
+          x <- fun(x)
+        } else {
+          x <- x_num
+        }
+      }
+      x
+    }
+    fixer_first <- function(x) {
+      x <- fixer(x, function(x) as_integer(x == levels(x)[1]))
+    }
+    if (fun %in% c("mean", "sum", "sd", "var", "sd", "se", "me", "cv", "prop", "varprop", "sdprop", "seprop", "meprop", "varpop", "sepop")) {
+      dataset[[nvar]] <- fixer_first(dataset[[nvar]])
+    } else if (fun %in% c("median", "min", "max", "p01", "p025", "p05", "p10", "p25", "p50", "p75", "p90", "p95", "p975", "p99", "skew", "kurtosi")) {
+      dataset[[nvar]] <- fixer(dataset[[nvar]])
+    }
+    rm(fixer, fixer_first)
+    if ("logical" %in% class(dataset[[nvar]])) {
       dataset[[nvar]] %<>% as.integer()
     }
   }
@@ -57,9 +76,9 @@ pivotr <- function(
   sfun <- function(x, nvar, cvars = "", fun = fun) {
     if (nvar == "n_obs") {
       if (is_empty(cvars)) {
-        count(x) %>% rename("n_obs" = "n")
+        count(x) %>% dplyr::rename("n_obs" = "n")
       } else {
-        count(select_at(x, .vars = cvars)) %>% rename("n_obs" = "n")
+        count(select_at(x, .vars = cvars)) %>% dplyr::rename("n_obs" = "n")
       }
     } else {
       dataset <- mutate_at(x, .vars = nvar, .funs = as.numeric) %>%
@@ -83,8 +102,8 @@ pivotr <- function(
       bind_rows(
         mutate_at(ungroup(tab), .vars = cvars, .funs = as.character),
         bind_cols(
-          data.frame("Total", stringsAsFactors = FALSE) %>% 
-          setNames(cvars), total %>% 
+          data.frame("Total", stringsAsFactors = FALSE) %>%
+          setNames(cvars), total %>%
           set_colnames(nvar)
         )
       )
@@ -174,12 +193,12 @@ pivotr <- function(
 
   tab <- as.data.frame(tab, stringsAsFactors = FALSE)
   attr(tab, "radiant_nrow") <- nrow_tab
-  if (!is.null(nr)) {
+  if (!isTRUE(is.infinite(nr))) {
     ind <- if (nr >= nrow(tab)) 1:nrow(tab) else c(1:nr, nrow(tab))
     tab <- tab[ind, , drop = FALSE]
   }
 
-  rm(isNum, dataset, sfun, sel, i, levs, total, ind, nrow_tab)
+  rm(isNum, dataset, sfun, sel, i, levs, total, ind, nrow_tab, envir)
 
   as.list(environment()) %>% add_class("pivotr")
 }
@@ -222,7 +241,7 @@ summary.pivotr <- function(
       cat("Table sorted:", paste0(object$tabsort, collapse = ", "), "\n")
     }
     nr <- attr(object$tab, "radiant_nrow")
-    if (!is.null(nr) && !is.null(object$nr) && object$nr < nr) {
+    if (!isTRUE(is.infinite(nr)) && !isTRUE(is.infinite(object$nr)) && object$nr < nr) {
       cat(paste0("Rows shown  : ", object$nr, " (out of ", nr, ")\n"))
     }
     cat("Categorical :", object$cvars, "\n")
@@ -365,7 +384,8 @@ dtab.pivotr <- function(
       },
       lengthMenu = list(c(5, 10, 25, 50, -1), c("5", "10", "25", "50", "All"))
     ),
-    callback = DT::JS("$(window).unload(function() { table.state.clear(); })")
+    ## https://github.com/rstudio/DT/issues/146#issuecomment-534319155
+    callback = DT::JS('$(window).on("unload", function() { table.state.clear(); })')
   ) %>%
     DT::formatStyle(., cvars, color = "white", backgroundColor = "grey") %>%
     {if ("Total" %in% cn) DT::formatStyle(., "Total", fontWeight = "bold") else .}

@@ -4,14 +4,39 @@
 \alias{visualize}
 \title{Visualize data using ggplot2 \url{http://ggplot2.tidyverse.org}}
 \usage{
-visualize(dataset, xvar, yvar = "", comby = FALSE, combx = FALSE,
-  type = ifelse(is_empty(yvar), "dist", "scatter"), nrobs = -1,
-  facet_row = ".", facet_col = ".", color = "none", fill = "none",
-  size = "none", fillcol = "blue", linecol = "black",
-  pointcol = "black", bins = 10, smooth = 1, fun = "mean",
-  check = "", axes = "", alpha = 0.5, theme = "theme_gray",
-  base_size = 11, base_family = "", labs = list(), xlim = NULL,
-  ylim = NULL, data_filter = "", shiny = FALSE, custom = FALSE)
+visualize(
+  dataset,
+  xvar,
+  yvar = "",
+  comby = FALSE,
+  combx = FALSE,
+  type = ifelse(is_empty(yvar), "dist", "scatter"),
+  nrobs = -1,
+  facet_row = ".",
+  facet_col = ".",
+  color = "none",
+  fill = "none",
+  size = "none",
+  fillcol = "blue",
+  linecol = "black",
+  pointcol = "black",
+  bins = 10,
+  smooth = 1,
+  fun = "mean",
+  check = "",
+  axes = "",
+  alpha = 0.5,
+  theme = "theme_gray",
+  base_size = 11,
+  base_family = "",
+  labs = list(),
+  xlim = NULL,
+  ylim = NULL,
+  data_filter = "",
+  shiny = FALSE,
+  custom = FALSE,
+  envir = parent.frame()
+)
 }
 \arguments{
 \item{dataset}{Data to plot (data.frame or tibble)}
@@ -73,6 +98,8 @@ visualize(dataset, xvar, yvar = "", comby = FALSE, combx = FALSE,
 \item{shiny}{Logical (TRUE, FALSE) to indicate if the function call originate inside a shiny app}
 
 \item{custom}{Logical (TRUE, FALSE) to indicate if ggplot object (or list of ggplot objects) should be returned. This option can be used to customize plots (e.g., add a title, change x and y labels, etc.). See examples and \url{http://docs.ggplot2.org} for options.}
+
+\item{envir}{Environment to extract data from}
 }
 \value{
 Generated plots
@@ -96,7 +123,7 @@ visualize(diamonds, yvar = "price", xvar = "carat", type = "scatter",
 visualize(diamonds, yvar = "price", xvar = "carat", type = "scatter", custom = TRUE) +
   labs(title = "A scatterplot", x = "price in $")
 visualize(diamonds, xvar = "price:carat", custom = TRUE) \%>\%
-  gridExtra::grid.arrange(grobs = ., top = "Histograms", ncol = 2)
+  wrap_plots(ncol = 2) + plot_annotation(title = "Histograms")
 visualize(diamonds, xvar = "cut", yvar = "price", type = "bar",
   facet_row = "cut", fill = "cut")
 

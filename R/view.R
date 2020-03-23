@@ -27,8 +27,11 @@ dtab <- function(object, ...) UseMethod("dtab", object)
 #' @param dom Table control elements to show on the page. See \url{https://datatables.net/reference/option/dom}
 #' @param style Table formatting style ("bootstrap" or "default")
 #' @param rownames Show data.frame rownames. Default is FALSE
+#' @param caption Table caption
+#' @param envir Environment to extract data from
 #' @param ... Additional arguments
 #'
+#' @importFrom shiny tags
 #' @examples
 #' \dontrun{
 #' dtab(mtcars)
@@ -39,11 +42,13 @@ dtab.data.frame <- function(
   object, vars = "", filt = "", rows = NULL,
   nr = NULL, na.rm = FALSE, dec = 3, perc = "",
   filter = "top", pageLength = 10, dom = "",
-  style = "bootstrap", rownames = FALSE, ...
+  style = "bootstrap", rownames = FALSE, 
+  caption = NULL,
+  envir = parent.frame(), ...
 ) {
 
-  dat <- get_data(object, vars, filt = filt, rows = rows, na.rm = na.rm)
-  if (!is_empty(nr)) {
+  dat <- get_data(object, vars, filt = filt, rows = rows, na.rm = na.rm, envir = envir)
+  if (!is_empty(nr) && nr < nrow(dat)) {
     dat <- dat[seq_len(nr), , drop = FALSE]
   }
 
@@ -65,8 +70,14 @@ dtab.data.frame <- function(
     dom <- if (pageLength == -1 || nrow(dat) < pageLength) "t" else "lftip"
   }
 
+  if (!is_empty(caption)) {
+    ## from https://github.com/rstudio/DT/issues/630#issuecomment-461191378
+    caption <- shiny::tags$caption(style = 'caption-side: top; text-align: left; color:black; font-size:150%;', caption)
+  }
+
   dt_tab <- DT::datatable(
     dat,
+    caption = caption,
     filter = filter,
     selection = "none",
     rownames = rownames,
@@ -168,7 +179,10 @@ search_data <- function(dataset, pattern, ignore.case = TRUE, fixed = FALSE) {
 #' @param rows Select rows in the specified dataset
 #' @param na.rm Remove rows with missing values (default is FALSE)
 #' @param dec Number of decimals to show
+#' @param envir Environment to extract data from
+#'
 #' @seealso See \code{\link{get_data}} and \code{\link{filter_data}}
+#'
 #' @examples
 #' \dontrun{
 #' view_data(mtcars)
@@ -177,11 +191,12 @@ search_data <- function(dataset, pattern, ignore.case = TRUE, fixed = FALSE) {
 #' @export
 view_data <- function(
   dataset, vars = "", filt = "",
-  rows = NULL, na.rm = FALSE, dec = 3
+  rows = NULL, na.rm = FALSE, dec = 3,
+  envir = parent.frame()
 ) {
 
   ## based on http://rstudio.github.io/DT/server.html
-  dat <- get_data(dataset, vars, filt = filt, rows = rows, na.rm = na.rm)
+  dat <- get_data(dataset, vars, filt = filt, rows = rows, na.rm = na.rm, envir = envir)
   title <- if (is_string(dataset)) paste0("DT:", dataset) else "DT"
   fbox <- if (nrow(dat) > 5e6) "none" else list(position = "top")
 

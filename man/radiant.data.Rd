@@ -3,7 +3,6 @@
 \docType{package}
 \name{radiant.data}
 \alias{radiant.data}
-\alias{radiant.data-package}
 \title{radiant.data}
 \usage{
 radiant.data(state, ...)
@@ -14,8 +13,6 @@ radiant.data(state, ...)
 \item{...}{additional arguments to pass to shiny::runApp (e.g, port = 8080)}
 }
 \description{
-radiant.data
-
 Launch the radiant.data app in the default web browser
 }
 \examples{

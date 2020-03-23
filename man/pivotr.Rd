@@ -4,9 +4,18 @@
 \alias{pivotr}
 \title{Create a pivot table}
 \usage{
-pivotr(dataset, cvars = "", nvar = "None", fun = "mean",
-  normalize = "None", tabfilt = "", tabsort = "", nr = NULL,
-  data_filter = "")
+pivotr(
+  dataset,
+  cvars = "",
+  nvar = "None",
+  fun = "mean",
+  normalize = "None",
+  tabfilt = "",
+  tabsort = "",
+  nr = Inf,
+  data_filter = "",
+  envir = parent.frame()
+)
 }
 \arguments{
 \item{dataset}{Dataset to tabulate}
@@ -26,6 +35,8 @@ pivotr(dataset, cvars = "", nvar = "None", fun = "mean",
 \item{nr}{Number of rows to display}
 
 \item{data_filter}{Expression used to filter the dataset before creating the table (e.g., "price > 10000")}
+
+\item{envir}{Environment to extract data from}
 }
 \description{
 Create a pivot table
