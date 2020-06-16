@@ -30,23 +30,20 @@ globalVariables(
 #'
 NULL
 
-#' @importFrom patchwork wrap_plots
+#' @importFrom patchwork wrap_plots plot_annotation
 #' @export
 patchwork::wrap_plots
 
-#' @importFrom patchwork plot_annotation
 #' @export
 patchwork::plot_annotation
 
-#' @importFrom glue glue
+#' @importFrom glue glue glue_data glue_collapse
 #' @export
 glue::glue
 
-#' @importFrom glue glue_data
 #' @export
 glue::glue_data
 
-#' @importFrom glue glue_collapse
 #' @export
 glue::glue_collapse
 
@@ -54,33 +51,33 @@ glue::glue_collapse
 #' @export
 knitr::knit_print
 
-#' @importFrom tibble rownames_to_column
+#' @importFrom tibble rownames_to_column tibble as_tibble
 #' @export
 tibble::rownames_to_column
 
-#' @importFrom tibble tibble
 #' @export
 tibble::tibble
 
-#' @importFrom tibble as_tibble
 #' @export
 tibble::as_tibble
 
-#' @importFrom broom tidy
+#' @importFrom broom tidy glance
 #' @export
 broom::tidy
 
-#' @importFrom broom glance
 #' @export
 broom::glance
 
-#' @importFrom psych kurtosi
+#' @importFrom psych kurtosi skew
 #' @export
 psych::kurtosi
 
-#' @importFrom psych skew
 #' @export
 psych::skew
+
+#' @importFrom lubridate date
+#' @export
+lubridate::date
 
 #' Diamond prices
 #' @details A sample of 3,000 from the diamonds dataset bundled with ggplot2. Description provided in attr(diamonds,"description")
