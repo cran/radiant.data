@@ -12,7 +12,7 @@ dtab <- function(object, ...) UseMethod("dtab", object)
 
 #' Create an interactive table to view, search, sort, and filter data
 #'
-#' @details View, search, sort, and filter a data.frame. For styling options see \url{http://rstudio.github.io/DT/functions.html}
+#' @details View, search, sort, and filter a data.frame. For styling options see \url{https://rstudio.github.io/DT/functions.html}
 #'
 #' @param object Data.frame to display
 #' @param vars Variables to show (default is all)
@@ -42,7 +42,7 @@ dtab.data.frame <- function(
   object, vars = "", filt = "", rows = NULL,
   nr = NULL, na.rm = FALSE, dec = 3, perc = "",
   filter = "top", pageLength = 10, dom = "",
-  style = "bootstrap", rownames = FALSE, 
+  style = "bootstrap", rownames = FALSE,
   caption = NULL,
   envir = parent.frame(), ...
 ) {
@@ -195,7 +195,7 @@ view_data <- function(
   envir = parent.frame()
 ) {
 
-  ## based on http://rstudio.github.io/DT/server.html
+  ## based on https://rstudio.github.io/DT/server.html
   dat <- get_data(dataset, vars, filt = filt, rows = rows, na.rm = na.rm, envir = envir)
   title <- if (is_string(dataset)) paste0("DT:", dataset) else "DT"
   fbox <- if (nrow(dat) > 5e6) "none" else list(position = "top")

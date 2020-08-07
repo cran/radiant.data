@@ -1,6 +1,6 @@
 #' Launch radiant apps
 #'
-#' @details See \url{https://radiant-rstats.github.io/docs} for radiant documentation and tutorials
+#' @details See \url{https://radiant-rstats.github.io/docs/} for radiant documentation and tutorials
 #'
 #' @param package Radiant package to start. One of "radiant.data", "radiant.design", "radiant.basics", "radiant.model", "radiant.multivariate", or "radiant"
 #' @param run Run a radiant app in an external browser ("browser"), an Rstudio window ("window"), or in the Rstudio viewer ("viewer")
@@ -479,7 +479,7 @@ iterms <- function(vars, nway = 2, sep = ":") {
     as.vector()
 }
 
-#' Create a vector of quadratic and cubed terms for use in linear and logist regression
+#' Create a vector of quadratic and cubed terms for use in linear and logistic regression
 #'
 #' @param vars Variables labels to use
 #' @param nway quadratic (2) or cubic (3) term labels to create
@@ -1497,7 +1497,7 @@ read_files <- function(
       glue('library(DBI)\ncon <- dbConnect(RSQLite::SQLite(), dbname = {pp$rpath})\n(tables <- dbListTables(con))\n{obj} <- dplyr::tbl(con, from = tables[1]) %>% collect()\ndbDisconnect(con)\nregister("{obj}")')
   } else if (pp$fext == "sql") {
     if (type == "rmd") {
-      cmd <- "/* see http://rmarkdown.rstudio.com/authoring_knitr_engines.html */\n" %>%
+      cmd <- "/* see https://rmarkdown.rstudio.com/authoring_knitr_engines.html */\n" %>%
         paste0(paste0(readLines(pp$path), collapse = "\n"))
       cmd <- glue('\n\n```{sql, connection = con, max.print = 20}\n<<cmd>>\n```\n\n', .open = "<<", .close = ">>")
       type <- ""
@@ -1506,7 +1506,7 @@ read_files <- function(
     }
   } else if (pp$fext %in% c("py", "css", "js")) {
     if (type == "rmd") {
-      cmd <- "## see http://rmarkdown.rstudio.com/authoring_knitr_engines.html\n" %>%
+      cmd <- "## see https://rmarkdown.rstudio.com/authoring_knitr_engines.html\n" %>%
         paste0(paste0(readLines(pp$path), collapse = "\n"))
       cmd <- glue('\n\n```{<<sub("py", "python", pp$fext)>>}\n<<cmd>>\n```\n\n', .open = "<<", .close = ">>")
       type <- ""
