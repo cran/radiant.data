@@ -56,10 +56,7 @@ launch <- function(package = "radiant.data", run = "viewer", state, ...) {
       message(sprintf("\nUsing Radiant in an Rstudio Window works best in a newer version of Rstudio (i.e., version > 1.2). See https://dailies.rstudio.com/ for the latest version. Alternatively, use %s::%s_viewer()", package, package))
     }
     options(radiant.launch = "window")
-    ## Dialog doesn't seem a good option
-    # run <- shiny::dialogViewer("Radiant", 1200, 800)
-    ## using eval(parse(text = ...)) to avoid foreign function call warnings
-    run <- eval(parse(text = "function(url) {invisible(.Call('rs_shinyviewer', url, getwd(), 3))}"))
+    run <- get(".rs.invokeShinyWindowViewer")
   } else {
     message(sprintf("\nStarting %s in the default browser ...\n\nUse %s::%s_viewer() in Rstudio to open %s in the Rstudio viewer or %s::%s_window() in Rstudio to open %s in an Rstudio window", package, package, package, package, package, package, package))
     options(radiant.launch = "browser")
@@ -497,7 +494,7 @@ qterms <- function(vars, nway = 2) {
 
 #' Source for package functions
 #'
-#' @details Equivalent of source with local=TRUE for package functions. Written by smbache, author of the import package. See \url{https://github.com/smbache/import/issues/4} for a discussion. This function will be deprecated when (if) it is included in \url{https://github.com/smbache/import}
+#' @details Equivalent of source with local=TRUE for package functions. Written by smbache, author of the import package. See \url{https://github.com/rticulate/import/issues/4/} for a discussion. This function will be deprecated when (if) it is included in \url{https://github.com/rticulate/import/}
 #'
 #' @param .from The package to pull the function from
 #' @param ... Functions to pull
@@ -536,7 +533,7 @@ copy_from <- function(.from, ...) {
 
 #' Source all package functions
 #'
-#' @details Equivalent of source with local=TRUE for all package functions. Adapted from functions by smbache, author of the import package. See \url{https://github.com/smbache/import/issues/4} for a discussion. This function will be deprecated when (if) it is included in \url{https://github.com/smbache/import}
+#' @details Equivalent of source with local=TRUE for all package functions. Adapted from functions by smbache, author of the import package. See \url{https://github.com/rticulate/import/issues/4/} for a discussion. This function will be deprecated when (if) it is included in \url{https://github.com/rticulate/import/}
 #'
 #' @param .from The package to pull the function from
 #'
@@ -1220,9 +1217,9 @@ describe <- function(dataset, envir = parent.frame()) {
 #   requireNamespace("feather")
 #   fw_args <- as.list(formals(feather::write_feather))
 #   if ("description" %in% names(fw_args)) {
-#     feather::write_feather(x, path, if (is.null(description)) "" else description)
+#     feather::write_feather(x, file, if (is.null(description)) "" else description)
 #   } else {
-#     feather::write_feather(x, path)
+#     feather::write_feather(x, file)
 #   }
 # }
 
@@ -1249,7 +1246,7 @@ fix_smart <- function(text, all = FALSE) {
       gsub("\u2018", "'", .) %>%
       gsub("\u201D", '"', .) %>%
       gsub("\u201C", '"', .)
-      # stringi::stri_trans_general(., "ascii") %>%
+    # stringi::stri_trans_general(., "ascii") %>%
   }
   gsub("\r\n", "\n", text) %>%
     gsub("\r", "\n", .) %>%
@@ -1429,8 +1426,7 @@ parse_path <- function(path, chr = "", pdir = getwd(), mess = TRUE) {
 #' }
 #' @importFrom rstudioapi selectFile isAvailable
 #' @export
-read_files <- function(
-                       path, pdir = "", type = "rmd", to = "", clipboard = TRUE, radiant = FALSE) {
+read_files <- function(path, pdir = "", type = "rmd", to = "", clipboard = TRUE, radiant = FALSE) {
 
   ## if no path is provided, an interactive file browser will be opened
   if (missing(path) || is_empty(path)) {
