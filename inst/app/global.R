@@ -234,10 +234,10 @@ r_sessions <- new.env(parent = emptyenv())
 "~/.radiant.sessions" %>% {if (!file.exists(.)) dir.create(.)}
 
 ## adding the figures path to avoid making a copy of all figures in www/figures
+addResourcePath("www", file.path(getOption("radiant.path.data"), "app/www/"))
 addResourcePath("figures", file.path(getOption("radiant.path.data"), "app/tools/help/figures/"))
 addResourcePath("imgs", file.path(getOption("radiant.path.data"), "app/www/imgs/"))
 addResourcePath("js", file.path(getOption("radiant.path.data"), "app/www/js/"))
-addResourcePath("www", file.path(getOption("radiant.path.data"), "app/www/"))
 
 ## cdn.mathjax.org has been retired
 ## use local MathJax if available
@@ -285,7 +285,7 @@ help_menu <- function(hlp) {
     navbarMenu(
       "", icon = icon("question-circle"),
       tabPanel("Help", uiOutput(hlp), icon = icon("question")),
-      tabPanel(actionLink("help_keyboard", "Keyboard shortcuts", icon = icon("keyboard-o"))),
+      tabPanel(actionLink("help_keyboard", "Keyboard shortcuts", icon = icon("keyboard-o", verify_fa = FALSE))),
       # tabPanel("Videos", uiOutput("help_videos"), icon = icon("film")),
       tabPanel(tags$a(
         "", href = "https://radiant-rstats.github.io/docs/tutorials.html", target = "_blank",
@@ -382,6 +382,20 @@ if (length(tmp) > 0) {
 options(radiant.versions = paste(radiant.versions, collapse = ", "))
 rm(tmp, radiant.versions)
 
+
+if (is.null(getOption("radiant.theme", default = NULL))) {
+  options(radiant.theme = bslib::bs_theme(version = 4))
+}
+
+## bslib theme and version
+has_bslib_theme <- function() {
+  if (rlang::is_installed("bslib")) bslib::is_bs_theme(getOption("radiant.theme")) else FALSE
+}
+
+bslib_current_version <- function() {
+  if (rlang::is_installed("bslib")) bslib::theme_version(getOption("radiant.theme", default = bslib::bs_theme(version = 4)))
+}
+
 navbar_proj <- function(navbar) {
   pdir <- radiant.data::find_project(mess = FALSE)
   if (radiant.data::is_empty(pdir)) {
@@ -397,14 +411,10 @@ navbar_proj <- function(navbar) {
     options(radiant.project_dir = pdir)
     options(radiant.launch_dir = pdir)
   }
-  proj <- tags$span(class = "nav navbar-brand navbar-right", proj)
-  ## based on: https://stackoverflow.com/a/40755608/1974918
-  navbar[[3]][[1]]$children[[1]]$children[[2]] <- htmltools::tagAppendChild(
-    navbar[[3]][[1]]$children[[1]]$children[[2]],
-    proj
-  )
 
-  navbar
+  proj_brand <- tags$span(class = "nav navbar-brand navbar-right", proj)
+  navbar_ <- htmltools::tagQuery(navbar)$find(".navbar-collapse")$append(proj_brand)$allTags()
+  htmltools::attachDependencies(navbar_, htmltools::findDependencies(navbar))
 }
 
 if (getOption("radiant.shinyFiles", FALSE)) {
@@ -497,6 +507,7 @@ options(
     list(
       windowTitle = "Radiant",
       id = "nav_radiant",
+      theme = getOption("radiant.theme"),
       inverse = TRUE,
       collapsible = TRUE,
       position = "fixed-top",
@@ -548,7 +559,7 @@ options(
           )
         ),
         tabPanel(tags$a(id = "refresh_radiant", href = "#", class = "action-button",
-          list(icon("refresh"), "Refresh"), onclick = "window.location.reload();"
+          list(icon("sync"), "Refresh"), onclick = "window.location.reload();"
         )),
         ## had to remove class = "action-button" to make this work
         tabPanel(tags$a(

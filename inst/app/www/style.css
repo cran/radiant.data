@@ -3,11 +3,17 @@ ul, ol {
 }
 
 #viz_details_main + span, #viz_details_labels + span, #viz_details_style + span {
-  font-weight:bold;
+  font-weight: bold;
 }
 
 .table {
   width: auto;
+}
+
+.btn {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 .snippet th, .snippet td {
@@ -18,13 +24,25 @@ table.dataTable tfoot td, table.dataTable thead td {
   padding: 0 0 0 0;
 }
 
+td.top {
+  padding-top:33px;
+}
+
+td.top_small {
+  padding-top:5px;
+}
+
+td.top_mini {
+  padding-top:1px;
+}
+
 .well {
-  padding: 8px;
+  padding: 7px;
   margin-bottom: 5px;
 }
 
 .col-sm-4 {
-  max-width: 300px;
+  max-width: 310px;
 }
 
 .checkbox {
@@ -33,21 +51,21 @@ table.dataTable tfoot td, table.dataTable thead td {
 }
 
 .form-group {
-  margin-top: 5px;
+  margin-top: 0;
   margin-bottom: 0;
 }
 
 .radio-inline+.radio-inline, .checkbox-inline+.checkbox-inline {
   margin-left: 0;
+  margin-right: 5px;
 }
 
 .radio-inline, .checkbox-inline {
-  margin-right: 10px;
+  margin-right: 5px;
 }
 
 .help-modal-dialog {
   padding-top: 80px;
-  /* overflow-y: initial !important */
 }
 
 .modal-sm {
@@ -58,6 +76,13 @@ table.dataTable tfoot td, table.dataTable thead td {
 .help-modal-body {
   max-height: 600px;
   overflow-y: auto;
+}
+
+.modal-title {
+  display: inline-block;
+  line-height: 1;
+  margin-top: 0;
+  margin-bottom: 0;
 }
 
 img {
@@ -91,6 +116,7 @@ code, pre code {
 textarea, select {
   resize: vertical;
   overflow: auto;
+  max-width: 100%;
 }
 
 .alignleft {
@@ -113,6 +139,7 @@ textarea, select {
   left: 0;
   right: 50%;
   padding-right: 10px;
+  margin-top: 1rem;
 }
 
 /* from: https://github.com/swarm-lab/editR/blob/master/inst/app/www/editR.css */
@@ -124,12 +151,13 @@ textarea, select {
   right: 0;
   padding-left: 10px;
   overflow-y: scroll;
+  margin-top: 1rem;
 }
 
 /* Needed in combination with navbarPage with fixed-top */
 /* based on https://stackoverflow.com/a/19231861/1974918 */
 body {
-  padding-top: 55px;
+  padding-top: 60px;
 }
 
 .navbar {

@@ -169,7 +169,7 @@ observeEvent(input$rmd_generate, {
             'To Rstudio (Rmd)' to 'Auto paste' or 'Manual paste'."
           ),
           footer = modalButton("OK"),
-          size = "s",
+          size = "m",
           easyClose = TRUE
         )
       )
@@ -177,9 +177,9 @@ observeEvent(input$rmd_generate, {
 
     ## get info from rstudio editor
     cnt <- rstudio_context(type = "rmd")
-    if (is_empty(cnt$path) || cnt$ext != "rmd") {
+    if (radiant.data::is_empty(cnt$path) || cnt$ext != "rmd") {
       rmd <- r_state$radiant_rmd_name
-     if (!is_empty(rmd)) {
+     if (!radiant.data::is_empty(rmd)) {
         if (file.exists(rmd)) {
           ## useful if you are not using an Rstudio project
           rstudioapi::navigateToFile(rmd)
@@ -293,16 +293,16 @@ output$report_rmd <- renderUI({
           actionButton(
             "rmd_knit", " Knit report (Rmd)", icon = icon("play"),
             class = "btn-success"
-          ), style = "padding-top:5px;"
+          ), class="top_small"
         ),
-        td(uiOutput("ui_rmd_generate")),
-        td(uiOutput("ui_rmd_view")),
-        td(uiOutput("ui_rmd_switch")),
-        td(uiOutput("ui_rmd_save_type")),
-        td(conditional_save_report("rmd_save"), style = "padding-top:5px;"),
-        td(uiOutput("ui_rmd_load"), style = "padding-top:5px;"),
-        td(conditional_read_files("rmd_read_files"), style = "padding-top:5px;"),
-        td(actionButton("rmd_clear", "Clear output", icon = icon("trash"), class = "btn-danger"), style = "padding-top:5px;")
+        td(uiOutput("ui_rmd_generate"), class="top_small"),
+        td(uiOutput("ui_rmd_view"), class="top_small"),
+        td(uiOutput("ui_rmd_switch"), class="top_small"),
+        td(uiOutput("ui_rmd_save_type"), class="top_small"),
+        td(conditional_save_report("rmd_save"), class="top_small"),
+        td(uiOutput("ui_rmd_load"), class="top_small"),
+        td(conditional_read_files("rmd_read_files"), class="top_small"),
+        td(actionButton("rmd_clear", "Clear output", icon = icon("trash"), class = "btn-danger"), class="top_small")
       )
     ),
     shinyAce::aceEditor(
@@ -393,7 +393,7 @@ rmd_knitted <- eventReactive(report_rmd$report != 1, {
       if (isTRUE(input$rmd_generate == "To Rmd")) {
 
         cnt <- rstudio_context(type = "rmd")
-        if (is_empty(cnt$path) || is_empty(cnt$ext, "r")) {
+        if (radiant.data::is_empty(cnt$path) || radiant.data::is_empty(cnt$ext, "r")) {
 
           ## popup to suggest user create an .Rmd file
           showModal(
@@ -407,7 +407,7 @@ rmd_knitted <- eventReactive(report_rmd$report != 1, {
                 'To Rstudio (Rmd)' to 'Auto paste' or 'Manual paste'."
               ),
               footer = modalButton("OK"),
-              size = "s",
+              size = "m",
               easyClose = TRUE
             )
           )
@@ -420,10 +420,10 @@ rmd_knitted <- eventReactive(report_rmd$report != 1, {
           }
           report <- cnt$content
         }
-      } else if (!is_empty(input$rmd_edit)) {
-        if (!is_empty(input$rmd_edit_selection, "")) {
+      } else if (!radiant.data::is_empty(input$rmd_edit)) {
+        if (!radiant.data::is_empty(input$rmd_edit_selection, "")) {
           report <- input$rmd_edit_selection
-        } else if (!is_empty(input$rmd_edit_hotkey$line, "") && report_rmd$knit_button == 0) {
+        } else if (!radiant.data::is_empty(input$rmd_edit_hotkey$line, "") && report_rmd$knit_button == 0) {
           report <- input$rmd_edit_hotkey$line
         } else {
           report <- input$rmd_edit
@@ -474,7 +474,7 @@ observeEvent(input$rmd_load, {
     )
   }
 
-  if (!inherits(path, "try-error") && !is_empty(path)) {
+  if (!inherits(path, "try-error") && !radiant.data::is_empty(path)) {
     if (pp$fext == "html") {
       ## based on https://rmarkdown.rstudio.com/r_notebook_format.html
       rmd <- try(rmarkdown::parse_html_notebook(pp$path), silent = TRUE)
@@ -506,12 +506,12 @@ observeEvent(input$rmd_load, {
 observeEvent(input$rmd_read_files, {
   if (is.integer(input$rmd_read_files)) return()
   path <- shinyFiles::parseFilePaths(sf_volumes, input$rmd_read_files)
-  if (inherits(path, "try-error") || is_empty(path$datapath)) return()
+  if (inherits(path, "try-error") || radiant.data::is_empty(path$datapath)) return()
   ldir <- getOption("radiant.launch_dir", default = radiant.data::find_home())
   pdir <- getOption("radiant.project_dir", default = ldir)
 
   cmd <- read_files(path$datapath, pdir = pdir, type = "rmd", clipboard = FALSE, radiant = TRUE)
-  if (!is_empty(cmd)) {
+  if (!radiant.data::is_empty(cmd)) {
     update_report_fun(cmd, type = "rmd", rfiles = TRUE)
   }
 })

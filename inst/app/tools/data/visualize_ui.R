@@ -12,17 +12,25 @@ viz_theme <- c(
   "Light" = "theme_light", "Dark" = "theme_dark",
   "Minimal" = "theme_minimal", "Classic" = "theme_classic"
 )
-viz_base_family = c(
-  "Theme default" = "", "Helvetica" = "Helvetica", "Serif" = "serif",
-  "Sans" = "sans", "Mono" = "mono", "Courier" = "Courier", "Times" = "Times"
-)
+
+os_type = Sys.info()["sysname"]
+if (os_type == "Windows") {
+  fnt <- names(windowsFonts())
+  names(fnt) <- tools::toTitleCase(fnt)
+  viz_base_family <- c("Theme default" = "", fnt)
+} else {
+  viz_base_family = c(
+    "Theme default" = "", "Helvetica" = "Helvetica", "Serif" = "serif",
+    "Sans" = "sans", "Mono" = "mono", "Courier" = "Courier", "Times" = "Times"
+  )
+}
 
 viz_labs <- c("title", "subtitle", "caption", "x", "y")
 viz_add_labs <- function() {
   lab_list <- list()
   for(l in viz_labs) {
     inp <- input[[paste0("viz_labs_", l)]]
-    if(!is_empty(inp)) lab_list[[l]] <- inp
+    if(!radiant.data::is_empty(inp)) lab_list[[l]] <- inp
   }
   lab_list
 }
@@ -208,8 +216,9 @@ output$ui_viz_axes <- renderUI({
   } else if (input$viz_type %in% c("bar", "box")) {
     ind <- c(1, 3)
   }
-  if (!is_empty(input$viz_facet_row, ".") || !is_empty(input$viz_facet_col, ".")) ind <- c(ind, 4)
-  if (input$viz_type == "bar" && input$viz_facet_row == "." && input$viz_facet_col == ".") ind <- c(ind, 6)
+  if (!radiant.data::is_empty(input$viz_facet_row, ".") || !radiant.data::is_empty(input$viz_facet_col, ".")) ind <- c(ind, 4)
+  # if (input$viz_type == "bar" && input$viz_facet_row == "." && input$viz_facet_col == ".") ind <- c(ind, 6)
+  if (input$viz_type == "bar") ind <- c(ind, 6)
 
   checkboxGroupInput(
     "viz_axes", NULL, viz_axes[ind],
@@ -416,18 +425,23 @@ output$ui_Visualize <- renderUI({
           min = 0, max = 1, step = .01
         ),
         tags$table(
-          tags$td(numericInput(
-            "viz_plot_height", label = "Plot height:", min = 100,
-            max = 2000, step = 50,
-            value = state_init("viz_plot_height", r_info[["plot_height"]]),
-            width = "117px"
-          )),
-          tags$td(numericInput(
-            "viz_plot_width", label = "Plot width:", min = 100,
-            max = 2000, step = 50,
-            value = state_init("viz_plot_width", r_info[["plot_width"]]),
-            width = "117px"
-          ))
+          tags$td(
+            numericInput(
+              "viz_plot_height", label = "Plot height:", min = 100,
+              max = 2000, step = 50,
+              value = state_init("viz_plot_height", r_info[["plot_height"]]),
+              width = "117px"
+            )
+          ),
+          tags$td(
+            numericInput(
+              "viz_plot_width", label = "Plot width:", min = 100,
+              max = 2000, step = 50,
+              value = state_init("viz_plot_width", r_info[["plot_width"]]),
+              width = "117px"
+            ),
+            width = "100%"
+          )
         )
       )
     ),
@@ -442,7 +456,7 @@ output$ui_Visualize <- renderUI({
 })
 
 viz_plot_width <- reactive({
-  if (is_empty(input$viz_plot_width)) r_info[["plot_width"]] else input$viz_plot_width
+  if (radiant.data::is_empty(input$viz_plot_width)) r_info[["plot_width"]] else input$viz_plot_width
 })
 
 ## based on https://stackoverflow.com/a/40182833/1974918
@@ -451,7 +465,7 @@ viz_plot_height <- eventReactive({
   input$viz_plot_height
   input$viz_plot_width
 }, {
-  if (is_empty(input$viz_plot_height)) {
+  if (radiant.data::is_empty(input$viz_plot_height)) {
     r_info[["plot_height"]]
   } else {
     lx <- ifelse(not_available(input$viz_xvar) || isTRUE(input$viz_combx), 1, length(input$viz_xvar))
@@ -467,21 +481,22 @@ viz_plot_height <- eventReactive({
 })
 
 output$visualize <- renderPlot({
+  req(input$viz_type)
   if (not_available(input$viz_xvar)) {
-    return(
-      plot(
-        x = 1, type = "n",
-        main = "\nPlease select variables from the dropdown menus to create a plot",
-        axes = FALSE, xlab = "", ylab = "", cex.main = .9
+    if (input$viz_type != "box") {
+      return(
+        plot(
+          x = 1, type = "n",
+          main = "\nPlease select variables from the dropdown menus to create a plot",
+          axes = FALSE, xlab = "", ylab = "", cex.main = .9
+        )
       )
-    )
+    }
   }
   .visualize() %>% {
     if (is.character(.)) {
       plot(x = 1, type = "n", main = paste0("\n", .), axes = FALSE, xlab = "", ylab = "", cex.main = .9)
-    } else if (is.null(.)) {
-      return(invisible())
-    } else {
+    } else if (length(.) > 0) {
       print(.)
     }
   }
@@ -495,7 +510,7 @@ output$visualize <- renderPlot({
   ## need dependency on ..
   req(input$viz_plot_height && input$viz_plot_width)
 
-  if (not_available(input$viz_xvar)) return()
+  if (not_available(input$viz_xvar) && input$viz_type != "box") return()
   if (input$viz_type %in% c("scatter", "line", "box", "bar", "surface") && not_available(input$viz_yvar)) {
     return("No Y-variable provided for a plot that requires one")
   }

@@ -84,7 +84,7 @@ output$ui_expl_byvar <- renderUI({
 output$ui_expl_fun <- renderUI({
   r_funs <- getOption("radiant.functions")
   isolate({
-    sel <- if (is_empty(input$expl_fun)) {
+    sel <- if (radiant.data::is_empty(input$expl_fun)) {
       state_multiple("expl_fun", r_funs, default_funs)
     } else {
       input$expl_fun
@@ -101,9 +101,9 @@ output$ui_expl_fun <- renderUI({
 })
 
 output$ui_expl_top <- renderUI({
-  if (is_empty(input$expl_vars)) return()
+  if (radiant.data::is_empty(input$expl_vars)) return()
   top_var <- c("Function" = "fun", "Variables" = "var", "Group by" = "byvar")
-  if (is_empty(input$expl_byvar)) top_var <- top_var[1:2]
+  if (radiant.data::is_empty(input$expl_byvar)) top_var <- top_var[1:2]
   selectizeInput(
     "expl_top", label = "Column header:",
     choices = top_var,
@@ -132,7 +132,7 @@ output$ui_Explore <- renderUI({
       uiOutput("ui_expl_run")
     ),
    wellPanel(
-      # actionLink("expl_clear", "Clear settings", icon = icon("refresh"), style="color:black"),
+      # actionLink("expl_clear", "Clear settings", icon = icon("sync"), style="color:black"),
       uiOutput("ui_expl_vars"),
       uiOutput("ui_expl_byvar"),
       uiOutput("ui_expl_fun"),
@@ -142,7 +142,7 @@ output$ui_Explore <- renderUI({
     wellPanel(
       tags$table(
         tags$td(uiOutput("ui_expl_name")),
-        tags$td(actionButton("expl_store", "Store", icon = icon("plus")), style = "padding-top:30px;")
+        tags$td(actionButton("expl_store", "Store", icon = icon("plus")), class="top")
       )
     ),
     help_and_report(
@@ -155,7 +155,7 @@ output$ui_Explore <- renderUI({
 
 .explore <- eventReactive(input$expl_run, {
   if (not_available(input$expl_vars) || is.null(input$expl_top)) return()
-  if (!is_empty(input$expl_byvar) && not_available(input$expl_byvar)) return()
+  if (!radiant.data::is_empty(input$expl_byvar) && not_available(input$expl_byvar)) return()
   if (available(input$expl_byvar) && any(input$expl_byvar %in% input$expl_vars)) return()
   expli <- expl_inputs()
   expli$envir <- r_data
@@ -260,7 +260,7 @@ observeEvent(input$expl_store, {
                 the report icon on the bottom left of your screen.")
       ),
       footer = modalButton("OK"),
-      size = "s",
+      size = "m",
       easyClose = TRUE
     )
   )
@@ -270,15 +270,15 @@ observeEvent(input$explore_report, {
 
   ## get the state of the dt table
   ts <- dt_state("explore")
-  xcmd <- "# dtab(result"
-  if (!is_empty(input$expl_dec, 3)) {
+  xcmd <- "# summary()\ndtab(result"
+  if (!radiant.data::is_empty(input$expl_dec, 3)) {
     xcmd <- paste0(xcmd, ", dec = ", input$expl_dec)
   }
-  if (!is_empty(r_state$explore_state$length, 10)) {
+  if (!radiant.data::is_empty(r_state$explore_state$length, 10)) {
     xcmd <- paste0(xcmd, ", pageLength = ", r_state$explore_state$length)
   }
   xcmd <- paste0(xcmd, ") %>% render()")
-  if (!is_empty(input$expl_name)) {
+  if (!radiant.data::is_empty(input$expl_name)) {
     dataset <- fix_names(input$expl_name)
     if (input$expl_name != dataset) {
       updateTextInput(session, inputId = "expl_name", value = dataset)
@@ -296,7 +296,7 @@ observeEvent(input$explore_report, {
     inp_main = inp_main,
     fun_name = "explore",
     inp_out = inp_out,
-    outputs = c("summary"),
+    outputs = c(),
     figs = FALSE,
     xcmd = xcmd
   )
