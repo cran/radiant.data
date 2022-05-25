@@ -516,22 +516,13 @@ visualize <- function(
           summarise_all(fun)
         colnames(tmp)[ncol(tmp)] <- j
 
-        # if ("sort" %in% axes && facet_row == "." && facet_col == ".") {
-        if ("sort" %in% axes) {
-          print("got here")
-          tmp <- tmp %>% group_by_at(.vars = "clarity")
- 
+        if ("sort" %in% axes && facet_row == "." && facet_col == ".") {
           if ("flip" %in% axes) {
-            # tmp <- arrange_at(ungroup(tmp), .vars = j)
-            tmp <- arrange_at(tmp, .vars = j, .by_group = TRUE)
-            print(tmp)
+            tmp <- arrange_at(ungroup(tmp), .vars = j)
           } else {
-            # tmp <- arrange_at(ungroup(tmp), .vars = j, .funs = desc)
-            tmp <- arrange_at(tmp, .vars = j, .funs = desc, .by_group = TRUE)
-            print(tmp)
+            tmp <- arrange_at(ungroup(tmp), .vars = j, .funs = desc)
           }
           tmp[[i]] %<>% factor(., levels = unique(.))
-          print(tmp)
         }
 
         plot_list[[itt]] <- ggplot(tmp, aes_string(x = i, y = j)) + {
@@ -617,8 +608,7 @@ visualize <- function(
     scl <- if ("scale_y" %in% axes) "free_y" else "fixed"
     facet_fun <- if (facet_row == ".") facet_wrap else facet_grid
     for (i in 1:length(plot_list))
-      # plot_list[[i]] <- plot_list[[i]] + facet_fun(as.formula(facets), scales = scl)
-      plot_list[[i]] <- plot_list[[i]] + facet_fun(as.formula(facets), scales = "free")
+      plot_list[[i]] <- plot_list[[i]] + facet_fun(as.formula(facets), scales = scl)
   }
 
   if (color != "none") {
