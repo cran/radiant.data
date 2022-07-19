@@ -1,9 +1,9 @@
 04440b45a9fe8ad5e0d563715347d2f9 *COPYING
-08f21431e53d690206dde09a2b7c2a3f *DESCRIPTION
+a344cc7ada955f99b152fa8098e9d5b0 *DESCRIPTION
 1e97e8fd1cfa907b889b7b5f4fffa0d7 *LICENSE
-6738947c16b714df612d913311b45bd8 *NAMESPACE
-da8d18e94c5065c333b4b43b527b4844 *NEWS.md
-df81d6503e79e8081c6079a1cde14ccc *R/aaa.R
+2134b4171c134ddcc0bd856a20cc6e9d *NAMESPACE
+c017db95b32d58b755945750311ff030 *NEWS.md
+46bc860a7b99736bf83174cc4aa8e585 *R/aaa.R
 ff9f1e633b1a269ee7caaa035d287553 *R/combine.R
 ed7c4e96649e380dde8a65d0b59e7bd1 *R/deprecated.R
 7d91c31aa189ca7693c7d3bf53e3a842 *R/explore.R
@@ -22,7 +22,7 @@ f7f3b037cf40c6300681d19330c7fb77 *data/publishers.rda
 6eb6863a5586cace529fd3f3a3076917 *data/titanic.rda
 0a3f91fffe1d92e57630eea739773582 *inst/app/global.R
 7c985413cb5db6023c42f0ffbd6c71e2 *inst/app/init.R
-3bc62771b31f7e844c10cf3bc3c507f1 *inst/app/radiant.R
+2dfbff81899cfbfc8413b7e3eb435a32 *inst/app/radiant.R
 4e26d8cac0f284a0694c47d4a3561e62 *inst/app/rsconnect/shinyapps.io/vnijs/radiant-data.dcf
 a6aa47719341070755f115ec6c84f554 *inst/app/server.R
 9a5c06f5c2ecd8b68fc10fdf09832330 *inst/app/tools/app/about.md
@@ -37,7 +37,7 @@ a616635eeee107cc67bc7cf95afb4dc1 *inst/app/tools/data/combine_ui.R
 d32922e8ff0f80e1ed72ccd4bda70188 *inst/app/tools/data/data_ui.R
 81343d977f096c3b6d6e900900aff865 *inst/app/tools/data/explore_ui.R
 4675487561fd9ccfd760b1709d54e9bc *inst/app/tools/data/manage.R
-2f801fe7680505d163272c55b46c549b *inst/app/tools/data/manage_ui.R
+9892d5318abed478c17b9f770df7af13 *inst/app/tools/data/manage_ui.R
 c19e7f6af3459cb40ae21b3be3989af7 *inst/app/tools/data/pivotr_ui.R
 7dc31b7283c262aee4aa31cb9e64f84c *inst/app/tools/data/transform_ui.R
 87cd98a425b9deb3f502827aa96b846d *inst/app/tools/data/view_ui.R
@@ -180,7 +180,7 @@ c8c68f013d30a4c442d0fb39dd2c8f93 *man/radiant.data_url.Rd
 82fcc73b2f3ed84b212e4b32d5ada3c0 *man/radiant.data_viewer.Rd
 cd7262cfc0eb3f0645247bacecdb1d18 *man/radiant.data_window.Rd
 fe83db667e77bceec9970f2a3defdc7a *man/read_files.Rd
-2b0e1b41164ec609f5b781f14c5886ab *man/reexports.Rd
+58e8845f8bb11a8667cfe9e23936d78b *man/reexports.Rd
 25a7515072c06737a676a88ffa6ad411 *man/refactor.Rd
 bd19b6adf942084cd78e629538152a7a *man/register.Rd
 5314b5e68872182e5cf6801e3e934281 *man/render.Rd
