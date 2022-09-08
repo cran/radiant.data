@@ -455,7 +455,7 @@ if (getOption("radiant.shinyFiles", FALSE)) {
         shinyFiles::shinySaveLink(
           id, label, caption,
           filename = fn, filetype = type,
-          class = "alignright", icon = icon(ic), onclick = onclick
+          class = "alignright", icon = icon(ic, verify_fa = FALSE), onclick = onclick
         )
       })
     } else {
@@ -465,7 +465,7 @@ if (getOption("radiant.shinyFiles", FALSE)) {
         shinyFiles::shinySaveButton(
           id, label, caption,
           filename = fn, filetype = type,
-          class = class, icon = icon("download"), onclick = onclick
+          class = class, icon = icon("download", verify_fa = FALSE), onclick = onclick
         )
       })
     }
@@ -481,7 +481,7 @@ if (getOption("radiant.shinyFiles", FALSE)) {
     })
   }
 } else {
-  download_link <- function(id) {
+  download_link <- function(id, ...) {
     downloadLink(id, "", class = "fa fa-download alignright", ...)
   }
   download_button <- function(id, label = "Save", ic = "download", class = "", ...) {
@@ -915,16 +915,16 @@ run_refresh <- function(args, pre, init = "evar", tabs = "",
       if (!radiant.data::is_empty(tabs)) {
         updateTabsetPanel(session, paste0(tabs, " "), selected = "Summary")
       }
-      updateActionButton(session, paste0(pre, "_run"), label, icon = icon("play"))
+      updateActionButton(session, paste0(pre, "_run"), label, icon = icon("play", verify_fa = FALSE))
     } else if (run) {
-      updateActionButton(session, paste0(pre, "_run"), relabel, icon = icon("sync", class = "fa-spin"))
+      updateActionButton(session, paste0(pre, "_run"), relabel, icon = icon("sync", class = "fa-spin", verify_fa = FALSE))
     } else {
-      updateActionButton(session, paste0(pre, "_run"), label, icon = icon("play"))
+      updateActionButton(session, paste0(pre, "_run"), label, icon = icon("play", verify_fa = FALSE))
     }
   })
 
   observeEvent(input[[paste0(pre, "_run")]], {
-    updateActionButton(session, paste0(pre, "_run"), label, icon = icon("play"))
+    updateActionButton(session, paste0(pre, "_run"), label, icon = icon("play", verify_fa = FALSE))
   })
 }
 
@@ -933,7 +933,7 @@ radiant_screenshot_modal <- function(report_on = "") {
     if (is_empty(report_on)) {
       ""
     } else {
-      actionButton(report_on, "Report", icon = icon("edit"), class = "btn-success")
+      actionButton(report_on, "Report", icon = icon("edit", verify_fa = FALSE), class = "btn-success")
     }
   }
   showModal(

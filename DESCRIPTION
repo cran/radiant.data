@@ -1,7 +1,7 @@
 Package: radiant.data
 Title: Data Menu for Radiant: Business Analytics using R and Shiny
-Version: 1.4.4
-Date: 2022-7-18
+Version: 1.4.5
+Date: 2022-9-8
 Authors@R: person("Vincent", "Nijs", , "radiant@rady.ucsd.edu", c("aut", "cre"))
 Description: The Radiant Data menu includes interfaces for loading, saving,
     viewing, visualizing, summarizing, transforming, and combining data. It also
@@ -29,10 +29,10 @@ License: AGPL-3 | file LICENSE
 LazyData: true
 Encoding: UTF-8
 Language: en-US
-RoxygenNote: 7.2.0
+RoxygenNote: 7.2.1
 NeedsCompilation: no
-Packaged: 2022-07-18 17:50:57 UTC; vnijs
+Packaged: 2022-09-08 16:49:04 UTC; vnijs
 Author: Vincent Nijs [aut, cre]
 Maintainer: Vincent Nijs <radiant@rady.ucsd.edu>
 Repository: CRAN
-Date/Publication: 2022-07-19 08:00:02 UTC
+Date/Publication: 2022-09-08 21:20:06 UTC
