@@ -12,6 +12,7 @@
   searchCols = NULL,
   order = NULL,
   pageLength = NULL,
+  caption = NULL,
   ...
 )
 }
@@ -30,6 +31,8 @@
 
 \item{pageLength}{Page length}
 
+\item{caption}{Table caption}
+
 \item{...}{further arguments passed to or from other methods}
 }
 \description{
@@ -41,8 +44,8 @@ See \url{https://radiant-rstats.github.io/docs/data/pivotr.html} for an example 
 \examples{
 \dontrun{
 pivotr(diamonds, cvars = "cut") \%>\% dtab()
-pivotr(diamonds, cvars = c("cut","clarity")) \%>\% dtab(format = "color_bar")
-pivotr(diamonds, cvars = c("cut","clarity"), normalize = "total") \%>\%
+pivotr(diamonds, cvars = c("cut", "clarity")) \%>\% dtab(format = "color_bar")
+pivotr(diamonds, cvars = c("cut", "clarity"), normalize = "total") \%>\%
   dtab(format = "color_bar", perc = TRUE)
 }
 

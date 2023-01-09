@@ -8,6 +8,7 @@
   object,
   vars = "",
   filt = "",
+  arr = "",
   rows = NULL,
   nr = NULL,
   na.rm = FALSE,
@@ -30,9 +31,11 @@
 
 \item{filt}{Filter to apply to the specified dataset. For example "price > 10000" if dataset is "diamonds" (default is "")}
 
+\item{arr}{Expression to arrange (sort) the data on (e.g., "color, desc(price)")}
+
 \item{rows}{Select rows in the specified dataset. For example "1:10" for the first 10 rows or "n()-10:n()" for the last 10 rows (default is NULL)}
 
-\item{nr}{Number of rows of data to include in the table}
+\item{nr}{Number of rows of data to include in the table. This function will be mainly used in reports so it is best to keep this number small}
 
 \item{na.rm}{Remove rows with missing values (default is FALSE)}
 

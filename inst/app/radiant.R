@@ -113,22 +113,39 @@ saveStateOnRefresh <- function(session = session) {
 ## get active dataset and apply data-filter if available
 .get_data <- reactive({
   req(input$dataset)
-  selcom <- input$data_filter %>%
+
+  filter_cmd <- input$data_filter %>%
     gsub("\\n", "", .) %>%
     gsub("\"", "\'", .) %>%
     fix_smart()
-  if (radiant.data::is_empty(selcom) || input$show_filter == FALSE) {
+
+  arrange_cmd <- input$data_arrange
+  if (!is.empty(arrange_cmd)) {
+    arrange_cmd <- arrange_cmd %>%
+      strsplit(., split = "(&|,|\\s+)") %>%
+      unlist() %>%
+      .[!. == ""] %>%
+      paste0(collapse = ", ") %>%
+      (function(x) glue("arrange(x, {x})"))
+  }
+
+  slice_cmd <- input$data_rows
+
+  if ((is.empty(filter_cmd) && is.empty(arrange_cmd) && is.empty(slice_cmd)) || input$show_filter == FALSE) {
     isolate(r_info[["filter_error"]] <- "")
-  } else if (grepl("([^=!<>])=([^=])", selcom)) {
+  } else if (grepl("([^=!<>])=([^=])", filter_cmd)) {
     isolate(r_info[["filter_error"]] <- "Invalid filter: Never use = in a filter! Use == instead (e.g., city == 'San Diego'). Update or remove the expression")
   } else {
     ## %>% needed here so . will be available
     seldat <- try(
-      r_data[[input$dataset]] %>% filter(!!rlang::parse_expr(selcom)),
+      r_data[[input$dataset]] %>%
+        (function(x) if (!is.empty(filter_cmd)) x %>% filter(!!rlang::parse_expr(filter_cmd)) else x) %>%
+        (function(x) if (!is.empty(arrange_cmd)) eval(parse(text = arrange_cmd)) else x) %>%
+        (function(x) if (!is.empty(slice_cmd)) x %>% slice(!!rlang::parse_expr(slice_cmd)) else x),
       silent = TRUE
     )
     if (inherits(seldat, "try-error")) {
-      isolate(r_info[["filter_error"]] <- paste0("Invalid filter: \"", attr(seldat, "condition")$message, "\". Update or remove the expression"))
+      isolate(r_info[["filter_error"]] <- paste0("Invalid input: \"", attr(seldat, "condition")$message, "\". Update or remove the expression(x)"))
     } else {
       isolate(r_info[["filter_error"]] <- "")
       if ("grouped_df" %in% class(seldat)) {
@@ -266,11 +283,11 @@ has_duplicates <- function(x) length(unique(x)) < length(x)
 is_date <- function(x) inherits(x, c("Date", "POSIXlt", "POSIXct"))
 
 ## drop elements from .._args variables obtained using formals
-r_drop <- function(x, drop = c("dataset", "data_filter", "envir")) x[!x %in% drop]
+r_drop <- function(x, drop = c("dataset", "data_filter", "arr", "rows", "envir")) x[!x %in% drop]
 
 ## show a few rows of a dataframe
-show_data_snippet <- function(dataset = input$dataset, nshow = 7, title = "", filt = "") {
-  if (is.character(dataset) && length(dataset) == 1) dataset <- get_data(dataset, filt = filt, na.rm = FALSE, envir = r_data)
+show_data_snippet <- function(dataset = input$dataset, nshow = 7, title = "", filt = "", arr = "", rows = "") {
+  if (is.character(dataset) && length(dataset) == 1) dataset <- get_data(dataset, filt = filt, arr = arr, rows = rows, na.rm = FALSE, envir = r_data)
   nr <- nrow(dataset)
   ## avoid slice with variables outside of the df in case a column with the same
   ## name exists
@@ -313,7 +330,6 @@ print.capture_plot <- function(x, ...) {
 returnTextAreaInput <- function(inputId, label = NULL, rows = 2,
                                 placeholder = NULL, resize = "vertical",
                                 value = "") {
-
   ## avoid all sorts of 'helpful' behavior from your browser
   ## see https://stackoverflow.com/a/35514029/1974918
   tagList(
@@ -475,7 +491,7 @@ if (getOption("radiant.shinyFiles", FALSE)) {
         return()
       }
       path <- shinyFiles::parseSavePath(sf_volumes, input[[id]])
-      if (!inherits(path, "try-error") && !radiant.data::is_empty(path$datapath)) {
+      if (!inherits(path, "try-error") && !is.empty(path$datapath)) {
         fun(path$datapath, ...)
       }
     })
@@ -547,14 +563,12 @@ register_print_output <- function(fun_name, rfun_name, out_name = fun_name) {
 ## out_name is the name of the output, set to fun_name by default
 register_plot_output <- function(fun_name, rfun_name, out_name = fun_name,
                                  width_fun = "plot_width", height_fun = "plot_height") {
-
   ## Generate output for the plots tab
   output[[out_name]] <- renderPlot(
     {
-
       ## when no analysis was conducted (e.g., no variables selected)
       p <- get(rfun_name)()
-      if (is_not(p) || radiant.data::is_empty(p)) p <- "Nothing to plot ...\nSelect plots to show or re-run the calculations"
+      if (is_not(p) || is.empty(p)) p <- "Nothing to plot ...\nSelect plots to show or re-run the calculations"
       if (is.character(p)) {
         plot(
           x = 1, type = "n", main = paste0("\n\n\n\n\n\n\n\n", p),
@@ -670,7 +684,6 @@ inclRmd <- function(path) {
 
 ## capture the state of a dt table
 dt_state <- function(fun, vars = "", tabfilt = "", tabsort = "", nr = 0) {
-
   ## global search
   search <- input[[paste0(fun, "_state")]]$search$search
   if (is.null(search)) search <- ""
@@ -700,10 +713,9 @@ dt_state <- function(fun, vars = "", tabfilt = "", tabsort = "", nr = 0) {
     })
 
   if (order != "NULL" || sc != "NULL") {
-
     ## get variable class and name
     gc <- get_class(dat) %>%
-      (function(x) if (radiant.data::is_empty(vars[1])) x else x[vars])
+      (function(x) if (is.empty(vars[1])) x else x[vars])
     cn <- names(gc)
 
     if (length(cn) > 0) {
@@ -757,7 +769,7 @@ state_init <- function(var, init = "", na.rm = TRUE) {
     ivar <- input[[var]]
     if (var %in% names(input) || length(ivar) > 0) {
       ivar <- input[[var]]
-      if ((na.rm && radiant.data::is_empty(ivar)) || length(ivar) == 0) {
+      if ((na.rm && is.empty(ivar)) || length(ivar) == 0) {
         r_state[[var]] <<- NULL
       }
     } else {
@@ -773,7 +785,7 @@ state_group <- function(var, init = "") {
     ivar <- input[[var]]
     if (var %in% names(input) || length(ivar) > 0) {
       ivar <- input[[var]]
-      if (radiant.data::is_empty(ivar)) r_state[[var]] <<- NULL
+      if (is.empty(ivar)) r_state[[var]] <<- NULL
     } else {
       ivar <- .state_init(var, init)
       r_state[[var]] <<- NULL ## line that differs for CBG inputs
@@ -784,7 +796,7 @@ state_group <- function(var, init = "") {
 
 .state_init <- function(var, init = "", na.rm = TRUE) {
   rs <- r_state[[var]]
-  if ((na.rm && radiant.data::is_empty(rs)) || length(rs) == 0) init else rs
+  if ((na.rm && is.empty(rs)) || length(rs) == 0) init else rs
 }
 
 state_single <- function(var, vals, init = character(0)) {
@@ -809,7 +821,7 @@ state_single <- function(var, vals, init = character(0)) {
 
 .state_single <- function(var, vals, init = character(0)) {
   rs <- r_state[[var]]
-  if (radiant.data::is_empty(rs)) init else vals[vals == rs]
+  if (is.empty(rs)) init else vals[vals == rs]
 }
 
 state_multiple <- function(var, vals, init = character(0)) {
@@ -837,7 +849,7 @@ state_multiple <- function(var, vals, init = character(0)) {
   r_state[[var]] <<- NULL
 
   ## "a" %in% character(0) --> FALSE, letters[FALSE] --> character(0)
-  if (radiant.data::is_empty(rs)) vals[vals %in% init] else vals[vals %in% rs]
+  if (is.empty(rs)) vals[vals %in% init] else vals[vals %in% rs]
 }
 
 ## cat to file
@@ -901,6 +913,8 @@ run_refresh <- function(args, pre, init = "evar", tabs = "",
     ## dep on most inputs
     if (data) {
       input$data_filter
+      input$data_arrange
+      input$data_rows
       input$show_filter
     }
     sapply(r_drop(names(args)), function(x) input[[paste0(pre, "_", x)]])
@@ -911,8 +925,11 @@ run_refresh <- function(args, pre, init = "evar", tabs = "",
     }
 
     run <- isolate(input[[paste0(pre, "_run")]]) %>% pressed()
-    if (is.null(input[[paste0(pre, "_", init)]])) {
-      if (!radiant.data::is_empty(tabs)) {
+    check_null <- function(init) {
+      all(sapply(init, function(x) is.null(input[[paste0(pre, "_", x)]])))
+    }
+    if (isTRUE(check_null(init))) {
+      if (!is.empty(tabs)) {
         updateTabsetPanel(session, paste0(tabs, " "), selected = "Summary")
       }
       updateActionButton(session, paste0(pre, "_run"), label, icon = icon("play", verify_fa = FALSE))
@@ -930,7 +947,7 @@ run_refresh <- function(args, pre, init = "evar", tabs = "",
 
 radiant_screenshot_modal <- function(report_on = "") {
   add_button <- function() {
-    if (is_empty(report_on)) {
+    if (is.empty(report_on)) {
       ""
     } else {
       actionButton(report_on, "Report", icon = icon("edit", verify_fa = FALSE), class = "btn-success")

@@ -30,7 +30,7 @@ viz_add_labs <- function() {
   lab_list <- list()
   for (l in viz_labs) {
     inp <- input[[paste0("viz_labs_", l)]]
-    if (!radiant.data::is_empty(inp)) lab_list[[l]] <- inp
+    if (!is.empty(inp)) lab_list[[l]] <- inp
   }
   lab_list
 }
@@ -42,10 +42,12 @@ viz_args <- as.list(formals(visualize))
 viz_inputs <- reactive({
   ## loop needed because reactive values don't allow single bracket indexing
   viz_args$data_filter <- if (isTRUE(input$show_filter)) input$data_filter else ""
+  viz_args$arr <- if (isTRUE(input$show_filter)) input$data_arrange else ""
+  viz_args$rows <- if (isTRUE(input$show_filter)) input$data_rows else ""
   viz_args$dataset <- input$dataset
   viz_args$shiny <- input$shiny
   viz_args$labs <- viz_add_labs()
-  for (i in r_drop(names(viz_args), drop = c("dataset", "data_filter", "labs"))) {
+  for (i in r_drop(names(viz_args), drop = c("dataset", "data_filter", "arr", "rows", "labs"))) {
     viz_args[[i]] <- input[[paste0("viz_", i)]]
   }
   # isolate({
@@ -87,7 +89,7 @@ output$ui_viz_yvar <- renderUI({
   if (input$viz_type %in% c("line", "bar", "scatter", "surface", "box")) {
     vars <- vars["character" != .get_class()[vars]]
   }
-  if (input$viz_type %in% c("line", "scatter", "box")) {
+  if (input$viz_type %in% c("box", "scatter")) {
     ## allow factors in yvars for bar plots
     vars <- vars["factor" != .get_class()[vars]]
   }
@@ -220,7 +222,7 @@ output$ui_viz_axes <- renderUI({
   } else if (input$viz_type %in% c("bar", "box")) {
     ind <- c(1, 3)
   }
-  if (!radiant.data::is_empty(input$viz_facet_row, ".") || !radiant.data::is_empty(input$viz_facet_col, ".")) ind <- c(ind, 4)
+  if (!is.empty(input$viz_facet_row, ".") || !is.empty(input$viz_facet_col, ".")) ind <- c(ind, 4)
   # if (input$viz_type == "bar" && input$viz_facet_row == "." && input$viz_facet_col == ".") ind <- c(ind, 6)
   if (input$viz_type == "bar") ind <- c(ind, 6)
 
@@ -316,10 +318,10 @@ output$ui_viz_colors <- renderUI({
   )
 })
 
-## add a spinning refresh icon if the tabel needs to be (re)calculated
+## add a spinning refresh icon if the graph needs to be (re)recreated
 run_refresh(
   viz_args, "viz",
-  init = "xvar", label = "Create plot", relabel = "Update plot",
+  init = c("xvar", "yvar"), label = "Create plot", relabel = "Update plot",
   inputs = c("labs_title", "labs_subtitle", "labs_caption", "labs_y", "labs_x")
 )
 
@@ -465,7 +467,6 @@ output$ui_Visualize <- renderUI({
         )
       )
     ),
-    # HTML("</details>"),
     help_and_report(
       modal_title = "Visualize",
       fun_name = "visualize",
@@ -476,7 +477,7 @@ output$ui_Visualize <- renderUI({
 })
 
 viz_plot_width <- reactive({
-  if (radiant.data::is_empty(input$viz_plot_width)) r_info[["plot_width"]] else input$viz_plot_width
+  if (is.empty(input$viz_plot_width)) r_info[["plot_width"]] else input$viz_plot_width
 })
 
 ## based on https://stackoverflow.com/a/40182833/1974918
@@ -487,7 +488,7 @@ viz_plot_height <- eventReactive(
     input$viz_plot_width
   },
   {
-    if (radiant.data::is_empty(input$viz_plot_height)) {
+    if (is.empty(input$viz_plot_height)) {
       r_info[["plot_height"]]
     } else {
       lx <- ifelse(not_available(input$viz_xvar) || isTRUE(input$viz_combx), 1, length(input$viz_xvar))
@@ -507,7 +508,7 @@ output$visualize <- renderPlot(
   {
     req(input$viz_type)
     if (not_available(input$viz_xvar)) {
-      if (input$viz_type != "box") {
+      if (!input$viz_type %in% c("box", "line")) {
         return(
           plot(
             x = 1, type = "n",
@@ -518,13 +519,13 @@ output$visualize <- renderPlot(
       }
     }
     .visualize() %>%
-      {
-        if (is.character(.)) {
-          plot(x = 1, type = "n", main = paste0("\n", .), axes = FALSE, xlab = "", ylab = "", cex.main = .9)
-        } else if (length(.) > 0) {
-          print(.)
+      (function(x) {
+        if (is.character(x)) {
+          plot(x = 1, type = "n", main = paste0("\n", x), axes = FALSE, xlab = "", ylab = "", cex.main = .9)
+        } else if (length(x) > 0) {
+          print(x)
         }
-      }
+      })
   },
   width = viz_plot_width,
   height = viz_plot_height,
@@ -538,13 +539,11 @@ output$visualize <- renderPlot(
   ## need dependency on ..
   req(input$viz_plot_height && input$viz_plot_width)
 
-  if (not_available(input$viz_xvar) && input$viz_type != "box") {
+  if (not_available(input$viz_xvar) && !input$viz_type %in% c("box", "line")) {
     return()
-  }
-  if (input$viz_type %in% c("scatter", "line", "box", "bar", "surface") && not_available(input$viz_yvar)) {
+  } else if (input$viz_type %in% c("scatter", "line", "box", "bar", "surface") && not_available(input$viz_yvar)) {
     return("No Y-variable provided for a plot that requires one")
-  }
-  if (input$viz_type == "box" && !all(input$viz_xvar %in% groupable_vars())) {
+  } else if (input$viz_type == "box" && !all(input$viz_xvar %in% groupable_vars())) {
     return()
   }
 
@@ -615,6 +614,9 @@ visualize_report <- function() {
 
   if (!input$viz_type %in% c("bar", "line", "scatter")) {
     vi$fun <- "mean"
+  }
+  if (is.empty(input$data_rows)) {
+    vi$rows <- NULL
   }
 
   inp_main <- c(clean_args(vi, viz_args), custom = FALSE)

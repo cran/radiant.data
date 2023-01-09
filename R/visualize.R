@@ -30,6 +30,8 @@
 #' @param xlim Set limit for x-axis (e.g., c(0, 1))
 #' @param ylim Set limit for y-axis (e.g., c(0, 1))
 #' @param data_filter Expression used to filter the dataset. This should be a string (e.g., "price > 10000")
+#' @param arr Expression used to sort the data. Likely used in combination for `rows`
+#' @param rows Rows to select from the specified dataset
 #' @param shiny Logical (TRUE, FALSE) to indicate if the function call originate inside a shiny app
 #' @param custom Logical (TRUE, FALSE) to indicate if ggplot object (or list of ggplot objects) should be returned. This option can be used to customize plots (e.g., add a title, change x and y labels, etc.). See examples and \url{https://ggplot2.tidyverse.org} for options.
 #' @param envir Environment to extract data from
@@ -38,46 +40,61 @@
 #'
 #' @examples
 #' visualize(diamonds, "price:cut", type = "dist", fillcol = "red")
-#' visualize(diamonds, "carat:cut", yvar = "price", type = "scatter",
-#'   pointcol = "blue", fun = c("mean", "median"), linecol = c("red","green"))
-#' visualize(diamonds, yvar = "price", xvar = c("cut","clarity"),
-#'   type = "bar", fun = "median")
-#' visualize(diamonds, yvar = "price", xvar = c("cut","clarity"),
-#'   type = "line", fun = "max")
-#' visualize(diamonds, yvar = "price", xvar = "carat", type = "scatter",
-#'           size = "table", custom = TRUE) + scale_size(range = c(1, 10), guide = "none")
+#' visualize(diamonds, "carat:cut",
+#'   yvar = "price", type = "scatter",
+#'   pointcol = "blue", fun = c("mean", "median"), linecol = c("red", "green")
+#' )
+#' visualize(diamonds,
+#'   yvar = "price", xvar = c("cut", "clarity"),
+#'   type = "bar", fun = "median"
+#' )
+#' visualize(diamonds,
+#'   yvar = "price", xvar = c("cut", "clarity"),
+#'   type = "line", fun = "max"
+#' )
+#' visualize(diamonds,
+#'   yvar = "price", xvar = "carat", type = "scatter",
+#'   size = "table", custom = TRUE
+#' ) + scale_size(range = c(1, 10), guide = "none")
 #' visualize(diamonds, yvar = "price", xvar = "carat", type = "scatter", custom = TRUE) +
 #'   labs(title = "A scatterplot", x = "price in $")
 #' visualize(diamonds, xvar = "price:carat", custom = TRUE) %>%
 #'   wrap_plots(ncol = 2) + plot_annotation(title = "Histograms")
-#' visualize(diamonds, xvar = "cut", yvar = "price", type = "bar",
-#'   facet_row = "cut", fill = "cut")
+#' visualize(diamonds,
+#'   xvar = "cut", yvar = "price", type = "bar",
+#'   facet_row = "cut", fill = "cut"
+#' )
+#'
+#' @importFrom rlang .data
+#' @importFrom stats density
 #'
 #' @export
-visualize <- function(
-  dataset, xvar, yvar = "", comby = FALSE, combx = FALSE,
-  type = ifelse(radiant.data::is_empty(yvar), "dist", "scatter"), nrobs = -1,
-  facet_row = ".", facet_col = ".", color = "none", fill = "none",
-  size = "none", fillcol = "blue", linecol = "black", pointcol = "black",
-  bins = 10, smooth = 1, fun = "mean", check = "", axes = "",
-  alpha = 0.5, theme = "theme_gray", base_size = 11, base_family = "",
-  labs = list(), xlim = NULL, ylim = NULL, data_filter = "",
-  shiny = FALSE, custom = FALSE, envir = parent.frame()
-) {
-
-  if (missing(xvar) && type == "box") {
+visualize <- function(dataset, xvar, yvar = "", comby = FALSE, combx = FALSE,
+                      type = ifelse(is.empty(yvar), "dist", "scatter"), nrobs = -1,
+                      facet_row = ".", facet_col = ".", color = "none", fill = "none",
+                      size = "none", fillcol = "blue", linecol = "black", pointcol = "black",
+                      bins = 10, smooth = 1, fun = "mean", check = "", axes = "",
+                      alpha = 0.5, theme = "theme_gray", base_size = 11, base_family = "",
+                      labs = list(), xlim = NULL, ylim = NULL, data_filter = "",
+                      arr = "", rows = NULL, shiny = FALSE, custom = FALSE,
+                      envir = parent.frame()) {
+  if (missing(xvar) && type %in% c("box", "line")) {
     xvar <- yvar
-    type = "box-single"
-    if (comby) {
-      comby <- FALSE
-      combx <- TRUE
+    if (type == "box") {
+      type <- "box-single"
+      if (comby) {
+        comby <- FALSE
+        combx <- TRUE
+      }
+    } else {
+      type <- "line-single"
     }
   }
 
   ## inspired by Joe Cheng's ggplot2 browser app http://www.youtube.com/watch?feature=player_embedded&v=o2B5yJeEl1A#!
   vars <- xvar
 
-  if (!type %in% c("scatter", "line", "box")) color <- "none"
+  if (!type %in% c("scatter", "line", "line-single", "box")) color <- "none"
   if (!type %in% c("bar", "dist", "density", "surface")) fill <- "none"
   if (type != "scatter") {
     check %<>% sub("line", "", .) %>% sub("loess", "", .)
@@ -100,7 +117,7 @@ visualize <- function(
     if (!type %in% c("dist", "density")) {
       return("No Y-variable provided for a plot that requires one")
     }
-  } else if (type == "surface" && radiant.data::is_empty(fill, "none")) {
+  } else if (type == "surface" && is.empty(fill, "none")) {
     return("No Fill variable provided for a plot that requires one")
   } else {
     if (type %in% c("dist", "density")) {
@@ -137,9 +154,9 @@ visualize <- function(
 
   ## so you can also pass-in a data.frame
   df_name <- if (is_string(dataset)) dataset else deparse(substitute(dataset))
-  dataset <- get_data(dataset, vars, filt = data_filter, envir = envir)
+  dataset <- get_data(dataset, vars, filt = data_filter, arr = arr, rows = rows, envir = envir)
 
-  if (type == "scatter" && !radiant.data::is_empty(nrobs)) {
+  if (type == "scatter" && !is.empty(nrobs)) {
     nrobs <- as.integer(nrobs)
     if (nrobs > 0 && nrobs < nrow(dataset)) {
       dataset <- sample_n(dataset, nrobs, replace = FALSE)
@@ -147,7 +164,7 @@ visualize <- function(
   }
 
   ## get class
-  dc <- get_class(dataset)
+  dc <- dc_org <- get_class(dataset)
 
   ## if : is used to specify a range of variables
   if (length(vars) < ncol(dataset)) {
@@ -175,9 +192,9 @@ visualize <- function(
     dc <- get_class(dataset)
   }
 
-  if (type == "bar") {
+  if (type %in% c("bar", "line")) {
     if (any(xvar %in% yvar)) {
-      return("Cannot create a bar-chart if an X-variable is also included as a Y-variable")
+      return("Cannot create a bar or line chart if an X-variable is also included as a Y-variable")
     }
   } else if (type == "box") {
     if (any(xvar %in% yvar)) {
@@ -186,7 +203,7 @@ visualize <- function(
   }
 
   ## Determine if you want to use the first level of factor or not
-  if (type == "bar") {
+  if (type %in% c("bar", "line")) {
     isFctY <- "factor" == dc & names(dc) %in% yvar
     if (sum(isFctY)) {
       levs_org <- sapply(dataset[, isFctY, drop = FALSE], function(x) levels(x)[1])
@@ -220,7 +237,10 @@ visualize <- function(
       } else if (fun %in% c("median", "min", "max", "p01", "p025", "p05", "p10", "p25", "p50", "p75", "p90", "p95", "p975", "p99", "skew", "kurtosi")) {
         mfun <- fixer
       } else {
-        mfun <- function(x) { levs <<- c(levs, NA); x}
+        mfun <- function(x) {
+          levs <<- c(levs, NA)
+          x
+        }
       }
 
       dataset[, isFctY] <- select(dataset, which(isFctY)) %>%
@@ -259,13 +279,23 @@ visualize <- function(
 
   ## combining Y-variables if needed
   if (comby && length(yvar) > 1) {
-    if (any(xvar %in% yvar) && type != "box-single") return("X-variables cannot be part of Y-variables when combining Y-variables")
-    if (!radiant.data::is_empty(color, "none")) return("Cannot use Color when combining Y-variables")
-    if (!radiant.data::is_empty(fill, "none")) return("Cannot use Fill when combining Y-variables")
-    if (!radiant.data::is_empty(size, "none")) return("Cannot use Size when combining Y-variables")
-    if (facet_row %in% yvar || facet_col %in% yvar) return("Facet row or column variables cannot be part of\nY-variables when combining Y-variables")
+    if (any(xvar %in% yvar) && !type %in% c("box-single", "line-single")) {
+      return("X-variables cannot be part of Y-variables when combining Y-variables")
+    }
+    if (!is.empty(color, "none")) {
+      return("Cannot use Color when combining Y-variables")
+    }
+    if (!is.empty(fill, "none")) {
+      return("Cannot use Fill when combining Y-variables")
+    }
+    if (!is.empty(size, "none")) {
+      return("Cannot use Size when combining Y-variables")
+    }
+    if (facet_row %in% yvar || facet_col %in% yvar) {
+      return("Facet row or column variables cannot be part of\nY-variables when combining Y-variables")
+    }
 
-    dataset <- gather(dataset, "yvar", "values", !! yvar, factor_key = TRUE)
+    dataset <- gather(dataset, "yvar", "values", !!yvar, factor_key = TRUE)
     yvar <- "values"
     byvar <- if (is.null(byvar)) "yvar" else c("yvar", byvar)
     color <- fill <- "yvar"
@@ -275,11 +305,17 @@ visualize <- function(
 
   ## combining X-variables if needed
   if (combx && length(xvar) > 1) {
-    if (!radiant.data::is_empty(fill, "none")) return("Cannot use Fill when combining X-variables")
-    if (facet_row %in% xvar || facet_col %in% xvar) return("Facet row or column variables cannot be part of\nX-variables when combining Y-variables")
-    if (any(!get_class(select_at(dataset, .vars = xvar)) %in% c("numeric", "integer"))) return("Cannot combine plots for non-numeric variables")
+    if (!is.empty(fill, "none")) {
+      return("Cannot use Fill when combining X-variables")
+    }
+    if (facet_row %in% xvar || facet_col %in% xvar) {
+      return("Facet row or column variables cannot be part of\nX-variables when combining Y-variables")
+    }
+    if (any(!get_class(select_at(dataset, .vars = xvar)) %in% c("numeric", "integer"))) {
+      return("Cannot combine plots for non-numeric variables")
+    }
 
-    dataset <- gather(dataset, "xvar", "values", !! xvar, factor_key = TRUE)
+    dataset <- gather(dataset, "xvar", "values", !!xvar, factor_key = TRUE)
     xvar <- "values"
     byvar <- if (is.null(byvar)) "xvar" else c("xvar", byvar)
     color <- fill <- "xvar"
@@ -290,7 +326,6 @@ visualize <- function(
   plot_list <- list()
   if (type == "dist") {
     for (i in xvar) {
-
       ## can't create a distribution plot for a logical
       if (dc[i] == "logical") {
         dataset[[i]] <- as_factor(dataset[[i]])
@@ -300,19 +335,21 @@ visualize <- function(
       hist_par <- list(alpha = alpha, position = "stack")
       if (combx) hist_par[["position"]] <- "identity"
       if (fill == "none") hist_par[["fill"]] <- fillcol
-      plot_list[[i]] <- ggplot(dataset, aes_string(x = i))
+      plot_list[[i]] <- ggplot(dataset, aes(x = .data[[i]]))
       if ("density" %in% axes && !"factor" %in% dc[i]) {
-        hist_par <- c(list(aes(y = ..density..)), hist_par)
-        plot_list[[i]] <- plot_list[[i]] + geom_density(adjust = smooth, color = linecol, size = .5)
+        hist_par <- c(list(aes(y = after_stat(density))), hist_par)
+        plot_list[[i]] <- plot_list[[i]] + geom_density(adjust = smooth, color = linecol, linewidth = .5)
       }
       if ("factor" %in% dc[i]) {
         plot_fun <- get("geom_bar")
         if ("log_x" %in% axes) axes <- sub("log_x", "", axes)
       } else {
         plot_fun <- get("geom_histogram")
-        hist_par[["binwidth"]] <- select_at(dataset, .vars = i) %>% range() %>% {
-          diff(.) / (bins - 1)
-        }
+        hist_par[["binwidth"]] <- select_at(dataset, .vars = i) %>%
+          range() %>%
+          {
+            diff(.) / (bins - 1)
+          }
       }
 
       plot_list[[i]] <- plot_list[[i]] + do.call(plot_fun, hist_par)
@@ -320,11 +357,11 @@ visualize <- function(
     }
   } else if (type == "density") {
     for (i in xvar) {
-      plot_list[[i]] <- ggplot(dataset, aes_string(x = i)) +
+      plot_list[[i]] <- ggplot(dataset, aes(x = .data[[i]])) +
         if (fill == "none") {
-          geom_density(adjust = smooth, color = linecol, fill = fillcol, alpha = alpha, size = 1)
+          geom_density(adjust = smooth, color = linecol, fill = fillcol, alpha = alpha, linewidth = 1)
         } else {
-          geom_density(adjust = smooth, alpha = alpha, size = 1)
+          geom_density(adjust = smooth, alpha = alpha, linewidth = 1)
         }
 
       if ("log_x" %in% axes) plot_list[[i]] <- plot_list[[i]] + xlab(paste("log", i))
@@ -350,13 +387,12 @@ visualize <- function(
       if ("log_x" %in% axes && dc[i] == "factor") axes <- sub("log_x", "", axes)
 
       for (j in yvar) {
-        plot_list[[itt]] <- ggplot(dataset, aes_string(x = i, y = j)) + gs
+        plot_list[[itt]] <- ggplot(dataset, aes(x = .data[[i]], y = .data[[j]])) + gs
 
         if ("log_x" %in% axes) plot_list[[itt]] <- plot_list[[itt]] + xlab(paste("log", i))
         if ("log_y" %in% axes) plot_list[[itt]] <- plot_list[[itt]] + ylab(paste("log", j))
 
         if (dc[i] == "factor") {
-
           ## make range comparable to bar plot
           ymax <- max(0, max(dataset[[j]]))
           ymin <- min(0, min(dataset[[j]]))
@@ -368,7 +404,6 @@ visualize <- function(
           }
 
           if (length(fun) == 1) {
-
             ## need some contrast in this case
             if (pointcol[1] == "black" && linecol[1] == "black") {
               linecol[1] <- "blue"
@@ -450,7 +485,7 @@ visualize <- function(
       interpolate <- ifelse("interpolate" %in% check, TRUE, FALSE)
 
       for (j in yvar) {
-        plot_list[[itt]] <- ggplot(dataset, aes_string(x = i, y = j, fill = fill)) +
+        plot_list[[itt]] <- ggplot(dataset, aes(x = .data[[i]], y = .data[[j]], fill = .data[[fill]])) +
           geom_raster(interpolate = interpolate)
 
         if ("log_x" %in% axes) plot_list[[itt]] <- plot_list[[itt]] + xlab(paste("log", i))
@@ -465,7 +500,7 @@ visualize <- function(
       for (j in yvar) {
         flab <- ""
         if (color == "none") {
-          if (dc[i] %in% c("factor", "date")) {
+          if (dc[i] %in% c("factor", "date") || dc_org[j] == "factor") {
             tbv <- if (is.null(byvar)) i else c(i, byvar)
             tmp <- dataset %>%
               group_by_at(.vars = tbv) %>%
@@ -473,13 +508,15 @@ visualize <- function(
               na.omit() %>%
               summarise_all(fun)
             colnames(tmp)[ncol(tmp)] <- j
-            plot_list[[itt]] <- ggplot(tmp, aes_string(x = i, y = j)) + geom_line(aes(group = 1), color = linecol)
+            plot_list[[itt]] <- ggplot(tmp, aes(x = .data[[i]], y = .data[[j]])) +
+              geom_line(aes(group = 1), color = linecol)
             if (nrow(tmp) < 101) plot_list[[itt]] <- plot_list[[itt]] + geom_point(color = pointcol)
           } else {
-            plot_list[[itt]] <- ggplot(dataset, aes_string(x = i, y = j)) + geom_line(color = linecol)
+            plot_list[[itt]] <- ggplot(dataset, aes(x = .data[[i]], y = .data[[j]])) +
+              geom_line(color = linecol)
           }
         } else {
-          if (dc[i] %in% c("factor", "date")) {
+          if (dc[i] %in% c("factor", "date") || dc_org[j] == "factor") {
             tbv <- if (is.null(byvar)) i else unique(c(i, byvar))
             tmp <- dataset %>%
               group_by_at(.vars = tbv) %>%
@@ -487,25 +524,48 @@ visualize <- function(
               na.omit() %>%
               summarise_all(fun)
             colnames(tmp)[ncol(tmp)] <- j
-            plot_list[[itt]] <- ggplot(tmp, aes_string(x = i, y = j, color = color, group = color)) + geom_line()
+            plot_list[[itt]] <- ggplot(tmp, aes(x = .data[[i]], y = .data[[j]], color = .data[[color]], group = .data[[color]])) +
+              geom_line()
             if (nrow(tmp) < 101) plot_list[[itt]] <- plot_list[[itt]] + geom_point()
           } else {
-            plot_list[[itt]] <- ggplot(dataset, aes_string(x = i, y = j, color = color, group = color)) + geom_line()
+            plot_list[[itt]] <- ggplot(dataset, aes(x = .data[[i]], y = .data[[j]], color = .data[[color]], group = .data[[color]])) +
+              geom_line()
           }
         }
         if ("log_x" %in% axes) plot_list[[itt]] <- plot_list[[itt]] + xlab(paste("log", i))
         if ("log_y" %in% axes) plot_list[[itt]] <- plot_list[[itt]] + ylab(paste("log", j))
-        if (dc[i] %in% c("factor", "date") && nrow(tmp) < nrow(dataset)) {
-          plot_list[[itt]]$labels$y %<>% paste0(., " (", fun, ")")
+        if ((dc[i] %in% c("factor", "date") || dc_org[j] == "factor") && nrow(tmp) < nrow(dataset)) {
+          if (exists("levs")) {
+            if (j %in% names(levs) && !is.na(levs[j])) {
+              plot_list[[itt]]$labels$y %<>% paste0(., " (", fun, " {", levs[j], "})")
+            } else {
+              plot_list[[itt]]$labels$y %<>% paste0(., " (", fun, ")")
+            }
+          } else {
+            plot_list[[itt]]$labels$y %<>% paste0(., " (", fun, ")")
+          }
         }
-
         itt <- itt + 1
       }
+    }
+  } else if (type == "line-single") {
+    itt <- 1
+    for (i in yvar) {
+      if (color == "none") {
+        plot_list[[itt]] <- ggplot(dataset, aes(x = seq_along(.data[[i]]), y = .data[[i]])) +
+          geom_line(color = linecol) +
+          labs(x = "")
+      } else {
+        plot_list[[itt]] <- ggplot(dataset, aes(x = seq_along(.data[[i]]), y = .data[[i]], color = .data[[color]], group = .data[[color]])) +
+          geom_line() +
+          labs(x = "")
+      }
+      itt <- itt + 1
     }
   } else if (type == "bar") {
     itt <- 1
     for (i in xvar) {
-      if (!"factor" %in% dc[i]) dataset[[i]] %<>% as_factor
+      if (!"factor" %in% dc[i]) dataset[[i]] %<>% as_factor()
       if ("log_x" %in% axes) axes <- sub("log_x", "", axes)
       for (j in yvar) {
         tbv <- if (is.null(byvar)) i else c(i, byvar)
@@ -525,7 +585,7 @@ visualize <- function(
           tmp[[i]] %<>% factor(., levels = unique(.))
         }
 
-        plot_list[[itt]] <- ggplot(tmp, aes_string(x = i, y = j)) + {
+        plot_list[[itt]] <- ggplot(tmp, aes(x = .data[[i]], y = .data[[j]])) + {
           if (fill == "none") {
             geom_bar(stat = "identity", position = "dodge", alpha = alpha, fill = fillcol)
           } else {
@@ -560,10 +620,10 @@ visualize <- function(
       if (!"factor" %in% dc[i]) dataset[[i]] %<>% as_factor
       for (j in yvar) {
         if (color == "none") {
-          plot_list[[itt]] <- ggplot(dataset, aes_string(x = i, y = j)) +
+          plot_list[[itt]] <- ggplot(dataset, aes(x = .data[[i]], y = .data[[j]])) +
             geom_boxplot(alpha = alpha, fill = fillcol, outlier.color = pointcol, color = linecol)
         } else {
-          plot_list[[itt]] <- ggplot(dataset, aes_string(x = i, y = j, fill = color)) +
+          plot_list[[itt]] <- ggplot(dataset, aes(x = .data[[i]], y = .data[[j]], fill = .data[[color]])) +
             geom_boxplot(alpha = alpha)
         }
 
@@ -579,22 +639,23 @@ visualize <- function(
   } else if (type == "box-single") {
     itt <- 1
     for (i in xvar) {
-        if (color == "none") {
-          plot_list[[itt]] <- dataset %>% ggplot(aes(x = "", y = .data[[i]])) +
-            geom_boxplot(alpha = alpha, fill = fillcol, outlier.color = pointcol, color = linecol) +
-            scale_x_discrete(labels = NULL, breaks = NULL) + labs(x = "")
-        } else {
-          plot_list[[itt]] <- dataset %>% ggplot(aes(x = "", y = .data[[i]], fill = color)) +
-            geom_boxplot(alpha = alpha)
-        }
+      if (color == "none") {
+        plot_list[[itt]] <- dataset %>% ggplot(aes(x = "", y = .data[[i]])) +
+          geom_boxplot(alpha = alpha, fill = fillcol, outlier.color = pointcol, color = linecol) +
+          scale_x_discrete(labels = NULL, breaks = NULL) +
+          labs(x = "")
+      } else {
+        plot_list[[itt]] <- dataset %>% ggplot(aes(x = "", y = .data[[i]], fill = color)) +
+          geom_boxplot(alpha = alpha)
+      }
 
-        if (!custom && (color == "none" || color == i)) {
-          plot_list[[itt]] <- plot_list[[itt]] + theme(legend.position = "none")
-        }
+      if (!custom && (color == "none" || color == i)) {
+        plot_list[[itt]] <- plot_list[[itt]] + theme(legend.position = "none")
+      }
 
-        if ("log_y" %in% axes) plot_list[[itt]] <- plot_list[[itt]] + ylab(paste("log", i))
+      if ("log_y" %in% axes) plot_list[[itt]] <- plot_list[[itt]] + ylab(paste("log", i))
 
-        itt <- itt + 1
+      itt <- itt + 1
     }
   }
 
@@ -607,54 +668,62 @@ visualize <- function(
     }
     scl <- if ("scale_y" %in% axes) "free_y" else "fixed"
     facet_fun <- if (facet_row == ".") facet_wrap else facet_grid
-    for (i in 1:length(plot_list))
+    for (i in 1:length(plot_list)) {
       plot_list[[i]] <- plot_list[[i]] + facet_fun(as.formula(facets), scales = scl)
+    }
   }
 
   if (color != "none") {
-    for (i in 1:length(plot_list))
-      plot_list[[i]] <- plot_list[[i]] + aes_string(color = color)
+    for (i in 1:length(plot_list)) {
+      plot_list[[i]] <- plot_list[[i]] + aes(color = .data[[color]])
+    }
   }
 
   if (size != "none") {
-    for (i in 1:length(plot_list))
-      plot_list[[i]] <- plot_list[[i]] + aes_string(size = size)
+    for (i in 1:length(plot_list)) {
+      plot_list[[i]] <- plot_list[[i]] + aes(size = .data[[size]])
+    }
   }
 
   if (fill != "none") {
-    for (i in 1:length(plot_list))
-      plot_list[[i]] <- plot_list[[i]] + aes_string(fill = fill)
+    for (i in 1:length(plot_list)) {
+      plot_list[[i]] <- plot_list[[i]] + aes(fill = .data[[fill]])
+    }
   }
 
   if ((length(xlim) == 2 && is.numeric(xlim)) &&
-      (length(ylim) == 2 && is.numeric(ylim))) {
-    for (i in 1:length(plot_list))
+    (length(ylim) == 2 && is.numeric(ylim))) {
+    for (i in 1:length(plot_list)) {
       plot_list[[i]] <- plot_list[[i]] + coord_cartesian(xlim = xlim, ylim = ylim)
+    }
   } else if (length(xlim) == 2 && is.numeric(xlim)) {
-    for (i in 1:length(plot_list))
+    for (i in 1:length(plot_list)) {
       plot_list[[i]] <- plot_list[[i]] + coord_cartesian(xlim = xlim)
+    }
   } else if (length(ylim) == 2 && is.numeric(ylim)) {
-    for (i in 1:length(plot_list))
+    for (i in 1:length(plot_list)) {
       plot_list[[i]] <- plot_list[[i]] + coord_cartesian(ylim = ylim)
+    }
   }
 
   if ("jitter" %in% check) {
-    for (i in 1:length(plot_list))
+    for (i in 1:length(plot_list)) {
       plot_list[[i]] <- plot_list[[i]] +
         geom_jitter(alpha = alpha, position = position_jitter(width = 0.4, height = 0.0))
+    }
   }
 
   if ("line" %in% check) {
     for (i in 1:length(plot_list)) {
       plot_list[[i]] <- plot_list[[i]] +
-        sshhr(geom_smooth(method = "lm", alpha = 0.2, size = .75, linetype = "dashed"))
+        sshhr(geom_smooth(method = "lm", alpha = 0.2, linewidth = .75, linetype = "dashed"))
     }
   }
 
   if ("loess" %in% check) {
     for (i in 1:length(plot_list)) {
       plot_list[[i]] <- plot_list[[i]] +
-        sshhr(geom_smooth(span = smooth, method = "loess", alpha = 0.2, size = .75, linetype = "dotdash"))
+        sshhr(geom_smooth(span = smooth, method = "loess", alpha = 0.2, linewidth = .75, linetype = "dotdash"))
     }
   }
 
@@ -687,7 +756,7 @@ visualize <- function(
     if (length(plot_list) == 1) plot_list[[1]] else plot_list
   } else {
     patchwork::wrap_plots(plot_list, ncol = min(length(plot_list), 2)) %>%
-      {if (shiny) . else print(.)}
+      (function(x) if (isTRUE(shiny)) x else print(x))
   }
 }
 
@@ -704,13 +773,15 @@ visualize <- function(
 #' qscatter(diamonds, "price", "carat")
 #' qscatter(titanic, "age", "survived")
 #'
+#' @importFrom rlang .data
+#'
 #' @export
 qscatter <- function(dataset, xvar, yvar, lev = "", fun = "mean", bins = 20) {
   if (is.character(dataset[[yvar]])) {
     dataset <- mutate_at(dataset, .vars = yvar, .funs = as.factor)
   }
   if (is.factor(dataset[[yvar]])) {
-    if (radiant.data::is_empty(lev)) lev <- levels(pull(dataset, !! yvar))[1]
+    if (is.empty(lev)) lev <- levels(pull(dataset, !!yvar))[1]
     dataset <- mutate_at(dataset, .vars = yvar, .funs = function(y) as.integer(y == lev))
     lev <- paste0(" {", lev, "}")
   } else {
@@ -719,7 +790,7 @@ qscatter <- function(dataset, xvar, yvar, lev = "", fun = "mean", bins = 20) {
   mutate_at(dataset, .vars = xvar, .funs = list(bins = ~ radiant.data::xtile(., bins))) %>%
     group_by(bins) %>%
     summarize_at(.vars = c(xvar, yvar), .funs = fun) %>%
-    ggplot(aes_string(x = xvar, y = yvar)) +
+    ggplot(aes(x = .data[[xvar]], y = .data[[yvar]])) +
     geom_point() +
     labs(y = paste0(yvar, " (", fun, lev, ")"))
 }

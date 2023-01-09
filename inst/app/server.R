@@ -14,6 +14,16 @@ shinyServer(function(input, output, session) {
     source(file, encoding = enc, local = TRUE)
   }
 
+  # dataviewer_proxy <- DT::dataTableProxy("dataviewer", session)
+
+  # observe(session$setCurrentTheme(
+  #   if (isTRUE(input$dark_mode)) {
+  #     bslib::bs_theme(version = 4, bg = "black", fg = "white")
+  #   } else {
+  #     bslib::bs_theme(version = 4)
+  #   }
+  # ))
+
   ## save state on refresh or browser close
   saveStateOnRefresh(session)
 })

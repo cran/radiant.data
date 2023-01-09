@@ -4,7 +4,7 @@
 \alias{indexr}
 \title{Find index corrected for missing values and filters}
 \usage{
-indexr(dataset, vars = "", filt = "", cmd = "")
+indexr(dataset, vars = "", filt = "", arr = "", rows = NULL, cmd = "")
 }
 \arguments{
 \item{dataset}{Dataset}
@@ -12,6 +12,10 @@ indexr(dataset, vars = "", filt = "", cmd = "")
 \item{vars}{Variables to select}
 
 \item{filt}{Data filter}
+
+\item{arr}{Expression to arrange (sort) the data on (e.g., "color, desc(price)")}
+
+\item{rows}{Selected rows}
 
 \item{cmd}{A command used to customize the data}
 }

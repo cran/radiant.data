@@ -10,7 +10,7 @@ visualize(
   yvar = "",
   comby = FALSE,
   combx = FALSE,
-  type = ifelse(radiant.data::is_empty(yvar), "dist", "scatter"),
+  type = ifelse(is.empty(yvar), "dist", "scatter"),
   nrobs = -1,
   facet_row = ".",
   facet_col = ".",
@@ -33,6 +33,8 @@ visualize(
   xlim = NULL,
   ylim = NULL,
   data_filter = "",
+  arr = "",
+  rows = NULL,
   shiny = FALSE,
   custom = FALSE,
   envir = parent.frame()
@@ -95,6 +97,10 @@ visualize(
 
 \item{data_filter}{Expression used to filter the dataset. This should be a string (e.g., "price > 10000")}
 
+\item{arr}{Expression used to sort the data. Likely used in combination for `rows`}
+
+\item{rows}{Rows to select from the specified dataset}
+
 \item{shiny}{Logical (TRUE, FALSE) to indicate if the function call originate inside a shiny app}
 
 \item{custom}{Logical (TRUE, FALSE) to indicate if ggplot object (or list of ggplot objects) should be returned. This option can be used to customize plots (e.g., add a title, change x and y labels, etc.). See examples and \url{https://ggplot2.tidyverse.org} for options.}
@@ -112,19 +118,29 @@ See \url{https://radiant-rstats.github.io/docs/data/visualize.html} for an examp
 }
 \examples{
 visualize(diamonds, "price:cut", type = "dist", fillcol = "red")
-visualize(diamonds, "carat:cut", yvar = "price", type = "scatter",
-  pointcol = "blue", fun = c("mean", "median"), linecol = c("red","green"))
-visualize(diamonds, yvar = "price", xvar = c("cut","clarity"),
-  type = "bar", fun = "median")
-visualize(diamonds, yvar = "price", xvar = c("cut","clarity"),
-  type = "line", fun = "max")
-visualize(diamonds, yvar = "price", xvar = "carat", type = "scatter",
-          size = "table", custom = TRUE) + scale_size(range = c(1, 10), guide = "none")
+visualize(diamonds, "carat:cut",
+  yvar = "price", type = "scatter",
+  pointcol = "blue", fun = c("mean", "median"), linecol = c("red", "green")
+)
+visualize(diamonds,
+  yvar = "price", xvar = c("cut", "clarity"),
+  type = "bar", fun = "median"
+)
+visualize(diamonds,
+  yvar = "price", xvar = c("cut", "clarity"),
+  type = "line", fun = "max"
+)
+visualize(diamonds,
+  yvar = "price", xvar = "carat", type = "scatter",
+  size = "table", custom = TRUE
+) + scale_size(range = c(1, 10), guide = "none")
 visualize(diamonds, yvar = "price", xvar = "carat", type = "scatter", custom = TRUE) +
   labs(title = "A scatterplot", x = "price in $")
 visualize(diamonds, xvar = "price:carat", custom = TRUE) \%>\%
   wrap_plots(ncol = 2) + plot_annotation(title = "Histograms")
-visualize(diamonds, xvar = "cut", yvar = "price", type = "bar",
-  facet_row = "cut", fill = "cut")
+visualize(diamonds,
+  xvar = "cut", yvar = "price", type = "bar",
+  facet_row = "cut", fill = "cut"
+)
 
 }

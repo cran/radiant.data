@@ -12,8 +12,11 @@ explore(
   top = "fun",
   tabfilt = "",
   tabsort = "",
+  tabslice = "",
   nr = Inf,
   data_filter = "",
+  arr = "",
+  rows = NULL,
   envir = parent.frame()
 )
 }
@@ -32,9 +35,15 @@ explore(
 
 \item{tabsort}{Expression used to sort the table (e.g., "desc(Total)")}
 
+\item{tabslice}{Expression used to filter table (e.g., "1:5")}
+
 \item{nr}{Number of rows to display}
 
 \item{data_filter}{Expression used to filter the dataset before creating the table (e.g., "price > 10000")}
+
+\item{arr}{Expression to arrange (sort) the data on (e.g., "color, desc(price)")}
+
+\item{rows}{Rows to select from the specified dataset}
 
 \item{envir}{Environment to extract data from}
 }
@@ -50,7 +59,7 @@ See \url{https://radiant-rstats.github.io/docs/data/explore.html} for an example
 \examples{
 explore(diamonds, c("price", "carat")) \%>\% str()
 explore(diamonds, "price:x")$tab
-explore(diamonds, c("price","carat"), byvar = "cut", fun = c("n_missing", "skew"))$tab
+explore(diamonds, c("price", "carat"), byvar = "cut", fun = c("n_missing", "skew"))$tab
 
 }
 \seealso{

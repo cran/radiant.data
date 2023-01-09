@@ -12,8 +12,11 @@ pivotr(
   normalize = "None",
   tabfilt = "",
   tabsort = "",
+  tabslice = "",
   nr = Inf,
   data_filter = "",
+  arr = "",
+  rows = NULL,
   envir = parent.frame()
 )
 }
@@ -32,9 +35,15 @@ pivotr(
 
 \item{tabsort}{Expression used to sort the table (e.g., "desc(Total)")}
 
+\item{tabslice}{Expression used to filter table (e.g., "1:5")}
+
 \item{nr}{Number of rows to display}
 
 \item{data_filter}{Expression used to filter the dataset before creating the table (e.g., "price > 10000")}
+
+\item{arr}{Expression to arrange (sort) the data on (e.g., "color, desc(price)")}
+
+\item{rows}{Rows to select from the specified dataset}
 
 \item{envir}{Environment to extract data from}
 }
@@ -47,7 +56,7 @@ Create a pivot-table. See \url{https://radiant-rstats.github.io/docs/data/pivotr
 \examples{
 pivotr(diamonds, cvars = "cut") \%>\% str()
 pivotr(diamonds, cvars = "cut")$tab
-pivotr(diamonds, cvars = c("cut","clarity","color"))$tab
+pivotr(diamonds, cvars = c("cut", "clarity", "color"))$tab
 pivotr(diamonds, cvars = "cut:clarity", nvar = "price")$tab
 pivotr(diamonds, cvars = "cut", nvar = "price")$tab
 pivotr(diamonds, cvars = "cut", normalize = "total")$tab

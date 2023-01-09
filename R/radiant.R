@@ -151,6 +151,30 @@ install_webshot <- function() {
 #' @export
 set_attr <- function(x, which, value) `attr<-`(x, which, value)
 
+#' Convenience function to add a markdown description to a data.frame
+#'
+#' @param df A data.frame or tibble
+#' @param md Data description in markdown format
+#' @param path Path to a text file with the data description in markdown format
+#'
+#' @examples
+#' if (interactive()) {
+#'   mt <- mtcars |> add_description(md = "# MTCARS\n\nThis data.frame contains information on ...")
+#'   describe(mt)
+#' }
+#'
+#' @seealso See also \code{\link{register}}
+#'
+#' @export
+add_description <- function(df, md = "", path = "") {
+  if (path != "") {
+    md <- readLines(path) %>% paste0(collapse = "\n")
+  } else if (md == "") {
+    md <- "No description available"
+  }
+  set_attr(df, "description", md)
+}
+
 #' Copy attributes from one object to another
 #'
 #' @param to Object to copy attributes to
@@ -238,7 +262,9 @@ find_home <- function() {
 #' @param dataset Dataset or name of the data.frame
 #' @param vars Variables to extract from the data.frame
 #' @param filt Filter to apply to the specified dataset
+#' @param arr Expression to use to arrange (sort) the specified dataset
 #' @param rows Select rows in the specified dataset
+#' @param data_view_rows Vector of rows to select. Only used by Data > View in Radiant. Users should use "rows" instead
 #' @param na.rm Remove rows with missing values (default is TRUE)
 #' @param envir Environment to extract data from
 #'
@@ -247,38 +273,35 @@ find_home <- function() {
 #' @examples
 #' get_data(mtcars, vars = "cyl:vs", filt = "mpg > 25")
 #' get_data(mtcars, vars = c("mpg", "cyl"), rows = 1:10)
+#' get_data(mtcars, vars = c("mpg", "cyl"), arr = "desc(mpg)", rows = 1:5)
 #' @export
-get_data <- function(dataset, vars = "", filt = "",
-                     rows = NULL, na.rm = TRUE,
-                     envir = c()) {
-  filt <- gsub("\\n", "", filt) %>%
+get_data <- function(dataset, vars = "", filt = "", arr = "", rows = NULL,
+                     data_view_rows = NULL, na.rm = TRUE, envir = c()) {
+  filter_cmd <- gsub("\\n", "", filt) %>%
     gsub("\"", "\'", .)
 
-  {
-    if (is.data.frame(dataset)) {
-      dataset
-    } else if (is.environment(envir) && !is.null(envir[[dataset]])) {
-      envir[[dataset]]
-    } else {
-      paste0("Dataset ", dataset, " is not available. Please load the dataset") %>%
-        stop(call. = FALSE)
-    }
-  } %>%
-    {
-      if ("grouped_df" %in% class(.)) ungroup(.) else .
-    } %>% ## ungroup data if needed
-    {
-      if (filt == "") . else filter_data(., filt)
-    } %>% ## apply data_filter
-    {
-      if (is.null(rows)) . else .[rows, , drop = FALSE]
-    } %>%
-    {
-      if (radiant.data::is_empty(vars[1])) . else select(., !!!if (any(grepl(":", vars))) rlang::parse_exprs(paste0(vars, collapse = ";")) else vars)
-    } %>%
-    {
-      if (na.rm) na.omit(.) else .
-    }
+  arrange_cmd <- gsub("\\n", "", arr) %>%
+    gsub("\"", "\'", .)
+
+  slice_cmd <- rows
+
+  dataset <- if (is.data.frame(dataset)) {
+    dataset
+  } else if (is.environment(envir) && !is.null(envir[[dataset]])) {
+    envir[[dataset]]
+  } else {
+    paste0("Dataset ", dataset, " is not available. Please load the dataset") %>%
+      stop(call. = FALSE)
+  }
+
+  dataset %>%
+    (function(x) if ("grouped_df" %in% class(x)) ungroup(x) else x) %>% ## ungroup data if needed
+    (function(x) if (is.empty(filter_cmd)) x else filter_data(x, filter_cmd)) %>% ## apply data_filter
+    (function(x) if (is.empty(arrange_cmd)) x else arrange_data(x, arrange_cmd)) %>%
+    (function(x) if (is.empty(slice_cmd)) x else slice_data(x, slice_cmd)) %>%
+    (function(x) if (is.empty(data_view_rows)) x else x[data_view_rows, , drop = FALSE]) %>%
+    (function(x) if (is.empty(vars[1])) x else select(x, !!!if (any(grepl(":", vars))) rlang::parse_exprs(paste0(vars, collapse = ";")) else vars)) %>%
+    (function(x) if (na.rm) droplevels(na.omit(x)) else x)
 }
 
 #' Convert characters to factors
@@ -414,9 +437,9 @@ get_class <- function(dat) {
     sub("Period", "period", .)
 }
 
-#' Is a character variable defined
+#' Is a variable empty
 #'
-#' @details Is a variable NULL or an empty string
+#' @details Is a variable empty
 #'
 #' @param x Character value to evaluate
 #' @param empty Indicate what 'empty' means. Default is empty string (i.e., "")
@@ -424,19 +447,19 @@ get_class <- function(dat) {
 #' @return TRUE if empty, else FALSE
 #'
 #' @examples
-#' is_empty("")
-#' is_empty(NULL)
-#' is_empty(NA)
-#' is_empty(c())
-#' is_empty("none", empty = "none")
-#' is_empty("")
-#' is_empty("   ")
-#' is_empty(" something  ")
-#' is_empty(c("", "something"))
-#' is_empty(c(NA, 1:100))
-#' is_empty(mtcars)
+#' is.empty("")
+#' is.empty(NULL)
+#' is.empty(NA)
+#' is.empty(c())
+#' is.empty("none", empty = "none")
+#' is.empty("")
+#' is.empty("   ")
+#' is.empty(" something  ")
+#' is.empty(c("", "something"))
+#' is.empty(c(NA, 1:100))
+#' is.empty(mtcars)
 #' @export
-is_empty <- function(x, empty = "\\s*") {
+is.empty <- function(x, empty = "\\s*") {
   is_not(x) || (length(x) == 1 && grepl(paste0("^", empty, "$"), x))
 }
 
@@ -454,7 +477,7 @@ is_empty <- function(x, empty = "\\s*") {
 #' is_string(NA)
 #' @export
 is_string <- function(x) {
-  length(x) == 1 && is.character(x) && !radiant.data::is_empty(x)
+  length(x) == 1 && is.character(x) && !is.empty(x)
 }
 
 #' Is input a double (and not a date type)?
@@ -513,7 +536,6 @@ qterms <- function(vars, nway = 2) {
 #' @param ... Functions to pull
 #'
 #' @examples
-#'
 #' copy_from(radiant.data, get_data)
 #' @export
 copy_from <- function(.from, ...) {
@@ -1011,20 +1033,22 @@ store_character_popup <- function(mess) {
 #' @param dataset Dataset
 #' @param vars Variables to select
 #' @param filt Data filter
+#' @param arr Expression to arrange (sort) the data on (e.g., "color, desc(price)")
+#' @param rows Selected rows
 #' @param cmd A command used to customize the data
 #'
 #' @export
-indexr <- function(dataset, vars = "", filt = "", cmd = "") {
-  if (radiant.data::is_empty(vars) || sum(vars %in% colnames(dataset)) != length(vars)) {
+indexr <- function(dataset, vars = "", filt = "", arr = "", rows = NULL, cmd = "") {
+  if (is.empty(vars) || sum(vars %in% colnames(dataset)) != length(vars)) {
     vars <- colnames(dataset)
   }
   nrows <- nrow(dataset)
 
   ## customizing data if a command was used
-  if (!radiant.data::is_empty(cmd)) {
+  if (!is.empty(cmd)) {
     pred_cmd <- gsub("\"", "\'", cmd) %>%
       gsub("\\s+", "", .)
-    cmd_vars <- strsplit(pred_cmd, ";")[[1]] %>%
+    cmd_vars <- strsplit(pred_cmd, ";\\s*")[[1]] %>%
       strsplit(., "=") %>%
       sapply("[", 1) %>%
       gsub("\\s+", "", .)
@@ -1036,9 +1060,9 @@ indexr <- function(dataset, vars = "", filt = "", cmd = "") {
   }
 
   ind <- mutate(dataset, imf___ = seq_len(nrows)) %>%
-    {
-      if (filt == "") . else filter_data(., filt)
-    } %>%
+    (function(x) if (is.empty(filt)) x else filter_data(x, filt)) %>%
+    (function(x) if (is.empty(arr)) x else arrange_data(x, arr)) %>%
+    (function(x) if (is.empty(rows)) x else slice_data(x, rows)) %>%
     select_at(.vars = unique(c("imf___", vars))) %>%
     na.omit() %>%
     .[["imf___"]]
@@ -1206,7 +1230,7 @@ describe <- function(dataset, envir = parent.frame()) {
   }
 
   description <- attr(dataset, "description")
-  if (radiant.data::is_empty(description)) {
+  if (is.empty(description)) {
     return(str(dataset))
   }
 
@@ -1240,19 +1264,13 @@ describe <- function(dataset, envir = parent.frame()) {
 #' @param text Text to be parsed
 #' @param all Should all non-ascii characters be removed? Default is FALSE
 #'
-#' @importFrom stringi stri_escape_unicode
+#' @importFrom stringi stri_trans_general
 #'
 #' @export
 fix_smart <- function(text, all = FALSE) {
   if (all) {
     ## to remove all non-ascii symbols use ...
-    rv <- R.Version()
-    rv <- paste(rv$major, rv$minor, sep = ".")
-    if (rv >= "4.2.0") {
-      text <- stringi::stri_escape_unicode(text)
-    } else {
-      text <- gsub("[\x80-\xFF]", "", text)
-    }
+    text <- stringi::stri_trans_general(text, "latin-ascii")
   } else {
     ## based on https://stackoverflow.com/a/1262210/1974918
     ## based on https://stackoverflow.com/a/54467895/1974918
@@ -1279,6 +1297,9 @@ fix_smart <- function(text, all = FALSE) {
 #'
 #' @importFrom shiny makeReactiveBinding getDefaultReactiveDomain
 #'
+#' @seealso See also \code{\link{add_description}} to add a description in markdown format
+#'   to a data.frame
+#'
 #' @export
 register <- function(new, org = "", descr = "", shiny = shiny::getDefaultReactiveDomain(), envir = r_data) {
   if (!is.null(shiny)) {
@@ -1297,9 +1318,9 @@ register <- function(new, org = "", descr = "", shiny = shiny::getDefaultReactiv
 
     if (is.data.frame(envir[[new]])) {
       ## use data description from the original data.frame if available
-      if (!radiant.data::is_empty(descr)) {
+      if (!is.empty(descr)) {
         r_info[[paste0(new, "_descr")]] <- descr
-      } else if (radiant.data::is_empty(r_info[[paste0(new, "_descr")]]) && !radiant.data::is_empty(org)) {
+      } else if (is.empty(r_info[[paste0(new, "_descr")]]) && !is.empty(org)) {
         r_info[[paste0(new, "_descr")]] <- r_info[[paste0(org, "_descr")]]
       } else {
         r_info[[paste0(new, "_descr")]] <- attr(envir[[new]], "description")
@@ -1368,15 +1389,15 @@ deregister <- function(dataset, shiny = shiny::getDefaultReactiveDomain(), envir
 #' list.files(".", full.names = TRUE)[1] %>% parse_path()
 #' @export
 parse_path <- function(path, chr = "", pdir = getwd(), mess = TRUE) {
-  if (inherits(path, "try-error") || radiant.data::is_empty(path)) {
+  if (inherits(path, "try-error") || is.empty(path)) {
     return(
       list(path = "", rpath = "", base = "", base_name = "", ext = "", content = "")
     )
   }
 
-  if (radiant.data::is_empty(pdir)) {
+  if (is.empty(pdir)) {
     pdir <- try(rstudioapi::getActiveProject(), silent = TRUE)
-    if (inherits(pdir, "try-error") || radiant.data::is_empty(pdir)) {
+    if (inherits(pdir, "try-error") || is.empty(pdir)) {
       pdir <- radiant.data::find_home()
     }
   }
@@ -1390,12 +1411,12 @@ parse_path <- function(path, chr = "", pdir = getwd(), mess = TRUE) {
 
   fext <- tolower(fext)
 
-  if (!radiant.data::is_empty(pdir) && grepl(glue("^{pdir}"), path)) {
+  if (!is.empty(pdir) && grepl(glue("^{pdir}"), path)) {
     rpath <- sub(glue("^{pdir}"), "", path) %>% sub("^/", "", .)
     rpath <- glue("{chr}{rpath}{chr}")
   } else {
     dbdir <- getOption("radiant.dropbox_dir", "")
-    if (radiant.data::is_empty(dbdir)) {
+    if (is.empty(dbdir)) {
       dbdir <- try(radiant.data::find_dropbox(), silent = TRUE)
       if (inherits(dbdir, "try-error") && mess) {
         message("Not able to determine the location of a local the Dropbox folder")
@@ -1403,19 +1424,19 @@ parse_path <- function(path, chr = "", pdir = getwd(), mess = TRUE) {
       }
     }
 
-    if (!radiant.data::is_empty(dbdir) && grepl(glue("^{dbdir}"), path)) {
+    if (!is.empty(dbdir) && grepl(glue("^{dbdir}"), path)) {
       rpath <- sub(glue("^{dbdir}"), "", path) %>% sub("^/", "", .)
       rpath <- glue('file.path(radiant.data::find_dropbox(), "{rpath}")')
     } else {
       gddir <- getOption("radiant.gdrive_dir", "")
-      if (radiant.data::is_empty(gddir)) {
+      if (is.empty(gddir)) {
         gddir <- try(radiant.data::find_gdrive(), silent = TRUE)
         if (inherits(gddir, "try-error") && mess) {
           message("Not able to determine the location of a local Google Drive folder")
           gddir <- ""
         }
       }
-      if (!radiant.data::is_empty(gddir) && grepl(glue("^{gddir}"), path)) {
+      if (!is.empty(gddir) && grepl(glue("^{gddir}"), path)) {
         rpath <- sub(glue("^{gddir}"), "", path) %>% sub("^/", "", .)
         rpath <- glue('file.path(radiant.data::find_gdrive(), "{rpath}")')
       } else {
@@ -1442,9 +1463,8 @@ parse_path <- function(path, chr = "", pdir = getwd(), mess = TRUE) {
 #' @importFrom rstudioapi selectFile isAvailable
 #' @export
 read_files <- function(path, pdir = "", type = "rmd", to = "", clipboard = TRUE, radiant = FALSE) {
-
   ## if no path is provided, an interactive file browser will be opened
-  if (missing(path) || radiant.data::is_empty(path)) {
+  if (missing(path) || is.empty(path)) {
     if (rstudioapi::isAvailable()) {
       pdir <- getOption("radiant.project_dir", default = rstudioapi::getActiveProject())
       path <- rstudioapi::selectFile(
@@ -1456,13 +1476,13 @@ read_files <- function(path, pdir = "", type = "rmd", to = "", clipboard = TRUE,
       path <- try(choose_files(), silent = TRUE)
       pdir <- getwd()
     }
-    if (inherits(path, "try-error") || radiant.data::is_empty(path)) {
+    if (inherits(path, "try-error") || is.empty(path)) {
       return("")
     } else {
       pp <- parse_path(path, pdir = pdir, chr = "\"", mess = FALSE)
     }
   } else {
-    if (radiant.data::is_empty(pdir)) {
+    if (is.empty(pdir)) {
       pp <- parse_path(path, chr = "\"", mess = FALSE)
     } else {
       pp <- parse_path(path, pdir = pdir, chr = "\"", mess = FALSE)

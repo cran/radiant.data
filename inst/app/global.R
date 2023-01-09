@@ -304,7 +304,7 @@ help_menu <- function(hlp) {
       "",
       icon = icon("question-circle", verify_fa = FALSE),
       tabPanel("Help", uiOutput(hlp), icon = icon("question", verify_fa = FALSE)),
-      tabPanel(actionLink("help_keyboard", "Keyboard shortcuts", icon = icon("keyboard-o", verify_fa = FALSE))),
+      tabPanel(actionLink("help_keyboard", "Keyboard shortcuts", icon = icon("keyboard", verify_fa = FALSE))),
       # tabPanel("Videos", uiOutput("help_videos"), icon = icon("film")),
       tabPanel(tags$a(
         "",
@@ -323,6 +323,7 @@ help_menu <- function(hlp) {
         list(icon("github", verify_fa = FALSE), "Report issue")
       ))
     ),
+    # bslib::nav_item(checkboxInput("dark_mode", label = "Dark Mode", width="100px")),
     tags$head(
       tags$script(src = "js/session.js"),
       tags$script(src = "js/returnTextAreaBinding.js"),
@@ -418,8 +419,8 @@ bslib_current_version <- function() {
 
 navbar_proj <- function(navbar) {
   pdir <- radiant.data::find_project(mess = FALSE)
-  if (radiant.data::is_empty(pdir)) {
-    if (getOption("radiant.shinyFiles", FALSE) && !radiant.data::is_empty(getOption("radiant.sf_volumes", ""))) {
+  if (radiant.data::is.empty(pdir)) {
+    if (getOption("radiant.shinyFiles", FALSE) && !radiant.data::is.empty(getOption("radiant.sf_volumes", ""))) {
       proj <- paste0("Base dir: ", names(getOption("radiant.sf_volumes"))[1])
     } else {
       proj <- "Project: (None)"
@@ -440,7 +441,7 @@ navbar_proj <- function(navbar) {
 }
 
 if (getOption("radiant.shinyFiles", FALSE)) {
-  if (!radiant.data::is_empty(getOption("radiant.sf_volumes", "")) && radiant.data::is_empty(getOption("radiant.project_dir"))) {
+  if (!radiant.data::is.empty(getOption("radiant.sf_volumes", "")) && radiant.data::is.empty(getOption("radiant.project_dir"))) {
     launch_dir <- getOption("radiant.launch_dir", default = radiant.data::find_home())
     if (!launch_dir %in% getOption("radiant.sf_volumes", "")) {
       sf_volumes <- c(setNames(launch_dir, basename(launch_dir)), getOption("radiant.sf_volumes", ""))
@@ -453,8 +454,8 @@ if (getOption("radiant.shinyFiles", FALSE)) {
     }
     rm(launch_dir)
   }
-  if (radiant.data::is_empty(getOption("radiant.launch_dir"))) {
-    if (radiant.data::is_empty(getOption("radiant.project_dir"))) {
+  if (radiant.data::is.empty(getOption("radiant.launch_dir"))) {
+    if (radiant.data::is.empty(getOption("radiant.project_dir"))) {
       options(radiant.launch_dir = radiant.data::find_home())
       options(radiant.project_dir = getOption("radiant.launch_dir"))
     } else {
@@ -462,7 +463,7 @@ if (getOption("radiant.shinyFiles", FALSE)) {
     }
   }
 
-  if (radiant.data::is_empty(getOption("radiant.project_dir"))) {
+  if (radiant.data::is.empty(getOption("radiant.project_dir"))) {
     options(radiant.project_dir = getOption("radiant.launch_dir"))
   } else {
     options(radiant.launch_dir = getOption("radiant.project_dir"))
@@ -526,11 +527,17 @@ knit_print.data.frame <- function(x, ...) {
 
 load_html2canvas <- function() {
   # adapted from https://github.com/yonicd/snapper/blob/master/R/load.R
-  html2canvas <- "https://html2canvas.hertzen.com/dist/html2canvas.min.js"
+  # SRC URL "https://html2canvas.hertzen.com/dist/html2canvas.min.js"
+  asset_src <- "assets/html2canvas/"
+  asset_script <- "html2canvas.min.js"
+  dir.exists(asset_src)
   shiny::tagList(
-    htmltools::htmlDependency("html2canvas", "1.0.0",
-      src = c(href = dirname(html2canvas)),
-      script = basename(html2canvas)
+    htmltools::htmlDependency(
+      name = "html2canvas-js",
+      version = "1.4.1",
+      src = asset_src,
+      script = asset_script,
+      package = "radiant.data"
     )
   )
 }
@@ -572,12 +579,6 @@ options(
         tabPanel(actionLink("state_save_link", "Save radiant state file", icon = icon("download", verify_fa = FALSE))),
         tabPanel(actionLink("state_load_link", "Load radiant state file", icon = icon("upload", verify_fa = FALSE))),
         tabPanel(actionLink("state_share", "Share radiant state", icon = icon("share", verify_fa = FALSE))),
-        # tabPanel(
-        #   actionLink(
-        #     "colab_radiant", "Collaborate", icon = icon("user-plus", verify_fa = FALSE),
-        #     onclick = "TogetherJS(this); return false;"
-        #   )
-        # ),
         tabPanel("View radiant state", uiOutput("state_view"), icon = icon("user", verify_fa = FALSE)),
         "----", "Local",
         tabPanel(downloadLink("state_download", tagList(icon("download", verify_fa = FALSE), "Download radiant state file"))),
@@ -617,7 +618,8 @@ onStop(function() {
     clean_up_list <- c(
       "r_sessions", "help_menu", "make_url_patterns", "import_fs",
       "init_data", "navbar_proj", "knit_print.data.frame", "withMathJax",
-      "Dropbox", "sf_volumes"
+      "Dropbox", "sf_volumes", "GoogleDrive", "bslib_current_version",
+      "has_bslib_theme", "load_html2canvas"
     )
     suppressWarnings(
       suppressMessages({

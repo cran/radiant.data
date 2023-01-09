@@ -4,7 +4,16 @@
 \alias{get_data}
 \title{Select variables and filter data}
 \usage{
-get_data(dataset, vars = "", filt = "", rows = NULL, na.rm = TRUE, envir = c())
+get_data(
+  dataset,
+  vars = "",
+  filt = "",
+  arr = "",
+  rows = NULL,
+  data_view_rows = NULL,
+  na.rm = TRUE,
+  envir = c()
+)
 }
 \arguments{
 \item{dataset}{Dataset or name of the data.frame}
@@ -13,7 +22,11 @@ get_data(dataset, vars = "", filt = "", rows = NULL, na.rm = TRUE, envir = c())
 
 \item{filt}{Filter to apply to the specified dataset}
 
+\item{arr}{Expression to use to arrange (sort) the specified dataset}
+
 \item{rows}{Select rows in the specified dataset}
+
+\item{data_view_rows}{Vector of rows to select. Only used by Data > View in Radiant. Users should use "rows" instead}
 
 \item{na.rm}{Remove rows with missing values (default is TRUE)}
 
@@ -31,4 +44,5 @@ Function is used in radiant to select variables and filter data based on user in
 \examples{
 get_data(mtcars, vars = "cyl:vs", filt = "mpg > 25")
 get_data(mtcars, vars = c("mpg", "cyl"), rows = 1:10)
+get_data(mtcars, vars = c("mpg", "cyl"), arr = "desc(mpg)", rows = 1:5)
 }
