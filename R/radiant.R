@@ -266,6 +266,7 @@ find_home <- function() {
 #' @param rows Select rows in the specified dataset
 #' @param data_view_rows Vector of rows to select. Only used by Data > View in Radiant. Users should use "rows" instead
 #' @param na.rm Remove rows with missing values (default is TRUE)
+#' @param rev Reverse filter and row selection (i.e., get the remainder)
 #' @param envir Environment to extract data from
 #'
 #' @return Data.frame with specified columns and rows
@@ -273,10 +274,10 @@ find_home <- function() {
 #' @examples
 #' get_data(mtcars, vars = "cyl:vs", filt = "mpg > 25")
 #' get_data(mtcars, vars = c("mpg", "cyl"), rows = 1:10)
-#' get_data(mtcars, vars = c("mpg", "cyl"), arr = "desc(mpg)", rows = 1:5)
+#' get_data(mtcars, vars = c("mpg", "cyl"), arr = "desc(mpg)", rows = "1:5")
 #' @export
 get_data <- function(dataset, vars = "", filt = "", arr = "", rows = NULL,
-                     data_view_rows = NULL, na.rm = TRUE, envir = c()) {
+                     data_view_rows = NULL, na.rm = TRUE, rev = FALSE, envir = c()) {
   filter_cmd <- gsub("\\n", "", filt) %>%
     gsub("\"", "\'", .)
 
@@ -292,6 +293,21 @@ get_data <- function(dataset, vars = "", filt = "", arr = "", rows = NULL,
   } else {
     paste0("Dataset ", dataset, " is not available. Please load the dataset") %>%
       stop(call. = FALSE)
+  }
+
+  get_flipped_ind <- function() {
+    get_data(dataset, arr = arr) %>%
+      mutate(ind__ = seq_len(n())) %>%
+      get_data(
+        c("ind__", colnames(.)),
+        filt = ifelse(is.empty(filter_cmd), "", filter_cmd),
+        rows = ifelse(is.empty(slice_cmd), "", slice_cmd)
+      ) %>%
+      pull("ind__")
+  }
+  if (isTRUE(rev)) {
+    slice_cmd <- -(get_flipped_ind())
+    filter_cmd <- ""
   }
 
   dataset %>%
@@ -1223,7 +1239,7 @@ render.shiny.render.function <- function(object, ...) object
 #' @export
 describe <- function(dataset, envir = parent.frame()) {
   dataset <- if (is.character(dataset)) {
-    message(paste0("Using describe(\"", dataset, "\") is deprecated.\nUse desribe(", dataset, ") instead"))
+    message(paste0("Using describe(\"", dataset, "\") is deprecated.\nUse describe(", dataset, ") instead"))
     get_data(dataset, envir = envir)
   } else {
     dataset
@@ -1518,7 +1534,7 @@ read_files <- function(path, pdir = "", type = "rmd", to = "", clipboard = TRUE,
     ## waiting for https://github.com/wesm/feather/pull/326
     # cmd <- paste0(to, " <- feather::read_feather(", pp$rpath, ", columns = c())\nregister(\"", pp$objname, "\", desc = feather::feather_metadata(\"", pp$rpath, "\")$description)")
     cmd <- glue('{to} <- feather::read_feather({pp$rpath}, columns = c())\nregister("{pp$objname}")')
-  } else if (pp$fext %in% c("dta", "sav", "sas7bdat")) {
+  } else if (pp$fext %in% c("dta", "save", "sas7bdat")) {
     cmd <- glue('{to} <- rio::import({pp$rpath})\nregister("{pp$objname}")')
   } else if (pp$fext == "yaml") {
     cmd <- glue('{to} <- yaml::yaml.load_file({pp$rpath})\nregister("{pp$objname}")')

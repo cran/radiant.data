@@ -399,7 +399,7 @@ output$ui_Transform <- renderUI({
           "tr_recode", "Recode:",
           value = "",
           rows = 3,
-          placeholder = "Select a variable, specificy how it should be recoded (e.g., lo:20 = 0; else = 1), and press return"
+          placeholder = "Select a variable, specify how it should be recoded (e.g., lo:20 = 0; else = 1), and press return"
         )
       ),
       conditionalPanel(
@@ -536,7 +536,6 @@ fix_ext <- function(ext) {
 
 .create <- function(dataset, cmd, byvar = "",
                     store_dat = "", store = TRUE) {
-
   ## replacing problem symbols (e.g., em dash, and curly quotes)
   cmd <- fix_smart(cmd)
 
@@ -558,7 +557,7 @@ fix_ext <- function(ext) {
       updateSelectInput(session = session, inputId = "tr_vars", selected = character(0))
     }
 
-    ## usefull if functions created in Report > R and Report > Rmd are
+    ## useful if functions created in Report > R and Report > Rmd are
     ## called in Data > Transform > Create
     ## add environment to do.call call instead?
     ## https://stackoverflow.com/questions/26028488/do-call-specify-environment-inside-function
@@ -909,35 +908,31 @@ fix_ext <- function(ext) {
   }
 }
 
-.holdout <- function(dataset, vars = "", filt = "", arr = "", rows = NULL, rev = "",
+.holdout <- function(dataset, vars = "", filt = "", arr = "", rows = NULL, rev = FALSE,
                      store_dat = "", store = TRUE) {
-  if (is.empty(filt) & is.empty(rows)) {
+  if (is.empty(filt) && is.empty(rows)) {
     return(paste0("No filter or slice found (n = ", nrow(dataset), ")"))
-  } else if (rev) {
-    filt <- ifelse(is.empty(filt), filt, paste0("!(", filt, ")"))
-    rows <- ifelse(is.empty(rows), rows, paste0("-(", rows, ")"))
   }
 
   if (!store || !is.character(dataset)) {
-    get_data(dataset, vars = vars, filt = filt, arr = arr, rows = rows, na.rm = FALSE, envir = r_data)
+    get_data(dataset, vars = vars, filt = filt, arr = arr, rows = rows, na.rm = FALSE, rev = rev, envir = r_data)
   } else {
-    cmd <- glue("## create holdout sample\n{store_dat} <- {dataset}")
+    cmd <- glue("## create holdout sample\n{store_dat} <- get_data(\n  {dataset}") # ", vars = {vars}, filt = {filt}, arr = {arr}, rows = {rows}, rev = {rev})\n")
+
+    if (!all(vars == "")) {
+      cmd <- glue('{cmd},\n  vars = c("{paste0(vars, collapse = ", ")}")', .trim = FALSE)
+    }
     if (!is.empty(filt)) {
       filt <- gsub("\"", "'", filt)
-      cmd <- paste0(cmd, " %>%\n  filter(", filt, ")")
+      cmd <- glue('{cmd},\n  filt = "{filt}"', .trim = FALSE)
     }
     if (!is.empty(arr)) {
-      cmd <- paste0(cmd, " %>%\n  ", make_arrange_cmd(arr))
+      cmd <- glue('{cmd},\n  arr = "{arr}"', .trim = FALSE)
     }
     if (!is.empty(rows)) {
-      cmd <- paste0(cmd, " %>%\n  slice(", rows, ")")
+      cmd <- glue('{cmd},\n  rows = "{rows}"', .trim = FALSE)
     }
-
-    if (all(vars == "")) {
-      paste0(cmd, "\n")
-    } else {
-      paste0(cmd, "%>%\n  select(", paste0(vars, collapse = ", "), ")\n")
-    }
+    glue("{cmd},\n  rev = {rev}\n)", .trim = FALSE)
   }
 }
 
@@ -1022,7 +1017,7 @@ transform_main <- reactive({
     } else {
       cpdat <- try(read.table(header = TRUE, comment.char = "", fill = TRUE, sep = "\t", as.is = TRUE, text = input$tr_paste), silent = TRUE)
       if (inherits(cpdat, "try-error")) {
-        return("The pasted data was not well formated. Please make sure the number of rows **\n** in the data in Radiant and in the spreadsheet are the same and try again.")
+        return("The pasted data was not well formatted. Please make sure the number of rows **\n** in the data in Radiant and in the spreadsheet are the same and try again.")
       } else if (nrow(cpdat) != nrow(dat)) {
         return("The pasted data does not have the correct number of rows. Please make sure **\n** the number of rows in the data in Radiant and in the spreadsheet are the **\n** same and try again.")
       } else {

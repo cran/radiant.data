@@ -12,6 +12,7 @@ get_data(
   rows = NULL,
   data_view_rows = NULL,
   na.rm = TRUE,
+  rev = FALSE,
   envir = c()
 )
 }
@@ -30,6 +31,8 @@ get_data(
 
 \item{na.rm}{Remove rows with missing values (default is TRUE)}
 
+\item{rev}{Reverse filter and row selection (i.e., get the remainder)}
+
 \item{envir}{Environment to extract data from}
 }
 \value{
@@ -44,5 +47,5 @@ Function is used in radiant to select variables and filter data based on user in
 \examples{
 get_data(mtcars, vars = "cyl:vs", filt = "mpg > 25")
 get_data(mtcars, vars = c("mpg", "cyl"), rows = 1:10)
-get_data(mtcars, vars = c("mpg", "cyl"), arr = "desc(mpg)", rows = 1:5)
+get_data(mtcars, vars = c("mpg", "cyl"), arr = "desc(mpg)", rows = "1:5")
 }

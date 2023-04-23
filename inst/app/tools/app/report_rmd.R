@@ -97,7 +97,7 @@ dtab(tbl) %>% render()
 
 ### Documenting analysis results in Radiant
 
-The report feature in Radiant should be used in conjunction with the <i title='Report results' class='fa fa-edit'></i> icons shown at the bottom of the side bar on (almost) all pages. When that icon is clicked the command used to create the ouput is copied into the editor in the _Report > Rmd_ tab. By default Radiant will paste the code generated for the analysis you just completed at the bottom of the report (i.e., `Auto paste`). However, you can turn off that feature by selecting `Manual paste` from the dropown. With manual paste on, the code is put in the clipboard when you click a report icon and you can paste it where you want in the _Report > Rmd_ editor window.
+The report feature in Radiant should be used in conjunction with the <i title='Report results' class='fa fa-edit'></i> icons shown at the bottom of the side bar on (almost) all pages. When that icon is clicked the command used to create the output is copied into the editor in the _Report > Rmd_ tab. By default Radiant will paste the code generated for the analysis you just completed at the bottom of the report (i.e., `Auto paste`). However, you can turn off that feature by selecting `Manual paste` from the dropown. With manual paste on, the code is put in the clipboard when you click a report icon and you can paste it where you want in the _Report > Rmd_ editor window.
 
 By clicking the `Knit report (Rmd)` button or pressing CTRL-enter (CMD-enter on Mac), the output from the analysis will be (re)created. You can add text, bullets, headers, etc. around the code chunks to describe and explain the results using <a href='https://rmarkdown.rstudio.com/authoring_pandoc_markdown.html' target='_blank'>markdown</a>. You can also select part of the report you want to render.
 
@@ -391,47 +391,53 @@ rmd_knitted <- eventReactive(report_rmd$report != 1, {
     HTML("<h2>Report was not evaluated. If you have sudo access to the server set options(radiant.report = TRUE) in .Rprofile for the shiny user </h2>")
   } else {
     report <- ""
-    withProgress(message = "Knitting report", value = 1, {
-      if (isTRUE(input$rmd_generate == "To Rmd")) {
-        cnt <- rstudio_context(type = "rmd")
-        if (is.empty(cnt$path) || is.empty(cnt$ext, "r")) {
-
-          ## popup to suggest user create an .Rmd file
-          showModal(
-            modalDialog(
-              title = "Report Rstudio (Rmd)",
-              span(
-                "Report is set to use an rmarkdown document in Rstudio
-                ('To Rstudio (Rmd)'). Please check that you have an .Rmd file
-                open in Rstudio and that the file has been saved to disk.
-                If you want to use the editor in Radiant instead, change
-                'To Rstudio (Rmd)' to 'Auto paste' or 'Manual paste'."
-              ),
-              footer = modalButton("OK"),
-              size = "m",
-              easyClose = TRUE
-            )
+    report_type <- "full report"
+    if (isTRUE(input$rmd_generate == "To Rmd")) {
+      cnt <- rstudio_context(type = "rmd")
+      if (is.empty(cnt$path) || is.empty(cnt$ext, "r")) {
+        ## popup to suggest user create an .Rmd file
+        showModal(
+          modalDialog(
+            title = "Report Rstudio (Rmd)",
+            span(
+              "Report is set to use an rmarkdown document in Rstudio
+              ('To Rstudio (Rmd)'). Please check that you have an .Rmd file
+              open in Rstudio and that the file has been saved to disk.
+              If you want to use the editor in Radiant instead, change
+              'To Rstudio (Rmd)' to 'Auto paste' or 'Manual paste'."
+            ),
+            footer = modalButton("OK"),
+            size = "m",
+            easyClose = TRUE
           )
-          report <- ""
+        )
+        report_type <- "nothing"
+        report <- ""
+      } else {
+        if (cnt$path != cnt$rpath) {
+          r_state$radiant_rmd_name <<- cnt$rpath
         } else {
-          if (cnt$path != cnt$rpath) {
-            r_state$radiant_rmd_name <<- cnt$rpath
-          } else {
-            r_state$radiant_rmd_name <<- cnt$path
-          }
-          report <- cnt$content
+          r_state$radiant_rmd_name <<- cnt$path
         }
-      } else if (!is.empty(input$rmd_edit)) {
-        if (!is.empty(input$rmd_edit_selection, "")) {
-          report <- input$rmd_edit_selection
-        } else if (!is.empty(input$rmd_edit_hotkey$line, "") && report_rmd$knit_button == 0) {
-          report <- input$rmd_edit_hotkey$line
-        } else {
-          report <- input$rmd_edit
-          ## hack to allow processing current line
-          report_rmd$knit_button <- 0
-        }
+
+        report_type <- "Rmarkdown file in Rstudio"
+        report <- cnt$content
       }
+    } else if (!is.empty(input$rmd_edit)) {
+      if (!is.empty(input$rmd_edit_selection, "")) {
+        report <- input$rmd_edit_selection
+        report_type <- "report selection"
+      } else if (!is.empty(input$rmd_edit_hotkey$line, "") && report_rmd$knit_button == 0) {
+        report <- input$rmd_edit_hotkey$line
+        report_type <- "report selection"
+      } else {
+        report <- input$rmd_edit
+        ## hack to allow processing current line
+        report_rmd$knit_button <- 0
+      }
+    }
+
+    withProgress(message = glue("Knitting {report_type}"), value = 1, {
       knit_it(report, type = "rmd")
     })
   }
