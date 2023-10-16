@@ -1,7 +1,7 @@
 Package: radiant.data
 Title: Data Menu for Radiant: Business Analytics using R and Shiny
-Version: 1.6.1
-Date: 2023-9-6
+Version: 1.6.2
+Date: 2023-10-15
 Authors@R: c(
     person("Vincent", "Nijs", email = "radiant@rady.ucsd.edu", role = c("aut", "cre")),
     person("Niklas", "von Hertzen", email = "niklasvh@gmail.com", role = c("aut"), comment = "html2canvas library")
@@ -34,9 +34,9 @@ Encoding: UTF-8
 Language: en-US
 RoxygenNote: 7.2.3
 NeedsCompilation: no
-Packaged: 2023-09-07 01:05:46 UTC; vnijs
+Packaged: 2023-10-16 05:23:12 UTC; vnijs
 Author: Vincent Nijs [aut, cre],
   Niklas von Hertzen [aut] (html2canvas library)
 Maintainer: Vincent Nijs <radiant@rady.ucsd.edu>
 Repository: CRAN
-Date/Publication: 2023-09-07 07:10:02 UTC
+Date/Publication: 2023-10-16 06:00:11 UTC
