@@ -1,8 +1,8 @@
 74521ccc0fd16e1b9c2daf863cd35a95 *COPYING
-8a5d62e3b4b63af2a2fa9d6d82eb9847 *DESCRIPTION
+50cb08e7beb6d768eb5efade09d64288 *DESCRIPTION
 1e97e8fd1cfa907b889b7b5f4fffa0d7 *LICENSE
 46d8c850f31d69794b53f9083a7ba676 *NAMESPACE
-237d3eabd256842327c3ae5ad12e4f00 *NEWS.md
+76bde1faa844f49849289ecd8531b234 *NEWS.md
 1b41b28a53486f17d7e8b3f32bfa643a *R/aaa.R
 4ef3059e09d39b39746b5d8b94646605 *R/combine.R
 ab2b1fc24dc2e6a788fad178f88b4679 *R/deprecated.R
@@ -20,9 +20,10 @@ cb35a142527122ac68fbea5a43b7feb5 *data/avengers.rda
 f7f3b037cf40c6300681d19330c7fb77 *data/publishers.rda
 4891b6ccb6d4143f100867af70e2a719 *data/superheroes.rda
 6eb6863a5586cace529fd3f3a3076917 *data/titanic.rda
-c88cce96308bd783cee1fd9e3fbe32ba *inst/app/global.R
+42433984df08130d901ea9ecc504c51c *inst/app/global.R
 a8b1541f49a5b3c59ba93f48594fd442 *inst/app/init.R
 5ccab69fe6f39dfa25e4be277cdb3c74 *inst/app/radiant.R
+beb90645a645e5ff252c532e9ebc753e *inst/app/rsconnect/rsm-compute-dev2.ucsd.edu/vnijs/radiantdata.dcf
 4e26d8cac0f284a0694c47d4a3561e62 *inst/app/rsconnect/shinyapps.io/vnijs/radiant-data.dcf
 68a76b93fdf1b7992529f9aae8c3aae4 *inst/app/server.R
 88962b7933b0cbcd3bc2bdd3583f3a7b *inst/app/tools/app/about.md
