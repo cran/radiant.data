@@ -1,8 +1,8 @@
 74521ccc0fd16e1b9c2daf863cd35a95 *COPYING
-c44850644a1b8950aaf71c06f2f32d4b *DESCRIPTION
+72e71ade72bdafc80588086e1f42ce09 *DESCRIPTION
 1e97e8fd1cfa907b889b7b5f4fffa0d7 *LICENSE
 46d8c850f31d69794b53f9083a7ba676 *NAMESPACE
-d9fd265dc5f8748d112ebd8752d18123 *NEWS.md
+b00a54eea86e5cacfc83d44e4edeb048 *NEWS.md
 1b41b28a53486f17d7e8b3f32bfa643a *R/aaa.R
 4ef3059e09d39b39746b5d8b94646605 *R/combine.R
 e83a9a1b1864f9ddf80f7e0b6d6ffd93 *R/deprecated.R
@@ -10,7 +10,7 @@ e83a9a1b1864f9ddf80f7e0b6d6ffd93 *R/deprecated.R
 24f1be604567e8cb7af8eaddbb5a6694 *R/for.shinyapps.io.R
 4d222a342dd498678eee6a41b544a3fb *R/manage.R
 fa96857ffa1c90971fd07c681bd048b6 *R/pivotr.R
-0ac54428c89049e29ed27a6873537b82 *R/radiant.R
+bdf9fb803319822effc67e84f1d25bfa *R/radiant.R
 30a02f58d0cb91e08f108e39a35575da *R/transform.R
 f151a7d789dba165f192a5d83c495310 *R/view.R
 62e4314aebe7c9d8078e2c14472f2625 *R/visualize.R
@@ -22,7 +22,7 @@ f7f3b037cf40c6300681d19330c7fb77 *data/publishers.rda
 6eb6863a5586cace529fd3f3a3076917 *data/titanic.rda
 9b911f4a75912f2b56d1ff0abc479b60 *inst/app/global.R
 a049da4b27f98eee4d6bd300267c9d45 *inst/app/init.R
-33870e0cbc14dfe575f32490535d3f71 *inst/app/radiant.R
+06e133d5eb0a8fad0395cad3c6a9f33d *inst/app/radiant.R
 beb90645a645e5ff252c532e9ebc753e *inst/app/rsconnect/rsm-compute-dev2.ucsd.edu/vnijs/radiantdata.dcf
 4e26d8cac0f284a0694c47d4a3561e62 *inst/app/rsconnect/shinyapps.io/vnijs/radiant-data.dcf
 68a76b93fdf1b7992529f9aae8c3aae4 *inst/app/server.R
